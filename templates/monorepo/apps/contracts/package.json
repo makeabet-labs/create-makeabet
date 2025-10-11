@@ -19,7 +19,7 @@
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.1",
     "@pythnetwork/pyth-evm-js": "^1.14.0",
-    "@pythnetwork/pyth-sdk-solidity": "^1.2.1",
+    "@pythnetwork/pyth-sdk-solidity": "^4.2.0",
     "@typechain/ethers-v6": "^0.5.1",
     "@types/node": "^20.11.32",
     "dotenv": "^16.4.5",

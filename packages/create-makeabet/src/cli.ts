@@ -75,7 +75,18 @@ async function removeMerchantAssets(targetDir: string) {
 
 function printSuccessMessage(options: ScaffoldOptions) {
   const { projectName, packageManager, includeMerchantModule } = options;
-  const pmExec = packageManager === 'pnpm' ? 'pnpm' : packageManager === 'yarn' ? 'yarn' : 'npm';
+  const installCommand =
+    packageManager === 'pnpm'
+      ? 'pnpm install'
+      : packageManager === 'yarn'
+        ? 'yarn install'
+        : 'npm install';
+  const devCommand =
+    packageManager === 'pnpm'
+      ? 'pnpm dev'
+      : packageManager === 'yarn'
+        ? 'yarn dev'
+        : 'npm run dev';
 
   console.log();
   console.log(chalk.green.bold('Success!'));
@@ -83,14 +94,9 @@ function printSuccessMessage(options: ScaffoldOptions) {
   console.log();
   console.log('Next steps:');
   console.log(`  cd ${projectName}`);
-  if (packageManager === 'pnpm') {
-    console.log('  pnpm install');
-  } else if (packageManager === 'yarn') {
-    console.log('  yarn install');
-  } else {
-    console.log('  npm install');
-  }
-  console.log(`  ${pmExec} run dev`);
+  console.log(`  ${installCommand}`);
+  console.log('  docker compose up -d    # start Postgres & Redis');
+  console.log(`  ${devCommand}`);
   console.log();
   console.log(`Merchant portal module ${includeMerchantModule ? chalk.green('enabled') : chalk.yellow('skipped')}.`);
   console.log('Ready to build the MakeABet demo and deploy to Railway!');
