@@ -1,0 +1,27 @@
+{
+  "name": "@makeabet/shared-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": {
+      "default": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.32",
+    "eslint": "^9.8.0",
+    "tsup": "^8.1.0",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}

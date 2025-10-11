@@ -1,0 +1,10 @@
+node_modules
+pnpm-lock.yaml
+.DS_Store
+.pnpm-store
+dist
+.tmp
+temp
+my-test-app
+**/*.log
+bin

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "plugins": {
+    "postgres": {
+      "name": "makeabet-postgres"
+    },
+    "redis": {
+      "name": "makeabet-redis"
+    }
+  },
+  "services": [
+    {
+      "name": "api",
+      "startCommand": "pnpm --filter @makeabet/api start",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "env": {
+        "DATABASE_URL": "${{postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{redis.REDIS_URL}}",
+        "NODE_ENV": "production"
+      }
+    },
+    {
+      "name": "worker",
+      "startCommand": "pnpm --filter @makeabet/worker start",
+      "installCommand": "pnpm install --frozen-lockfile",
+      "env": {
+        "DATABASE_URL": "${{postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{redis.REDIS_URL}}",
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}

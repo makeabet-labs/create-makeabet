@@ -1,0 +1,34 @@
+{
+  "name": "@makeabet/create",
+  "version": "0.1.0",
+  "description": "CLI for generating MakeABet monorepo scaffolds",
+  "type": "module",
+  "bin": {
+    "create-makeabet": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --dts --out-dir dist",
+    "dev": "tsx watch src/cli.ts",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "prepare": "pnpm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ora": "^8.0.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.32",
+    "@types/prompts": "^2.4.9",
+    "eslint": "^9.8.0",
+    "tsup": "^8.1.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}

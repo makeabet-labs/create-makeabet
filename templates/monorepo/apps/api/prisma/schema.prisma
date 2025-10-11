@@ -1,0 +1,29 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Market {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  settlement  String
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  bets        Bet[]
+}
+
+model Bet {
+  id        String   @id @default(cuid())
+  market    Market   @relation(fields: [marketId], references: [id])
+  marketId  String
+  side      String
+  amount    Decimal
+  createdBy String
+  createdAt DateTime @default(now())
+}

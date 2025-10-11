@@ -1,0 +1,2 @@
+web: pnpm --filter @makeabet/api start
+worker: pnpm --filter @makeabet/worker start
