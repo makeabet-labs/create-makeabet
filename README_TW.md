@@ -55,14 +55,9 @@ node packages/create-makeabet/dist/cli.js my-app \
 cd my-makeabet-app
 pnpm install
 
-# 啟動 Postgres & Redis
-make docker-up
-
-# Prisma Client 與遷移
+docker compose up -d    # 啟動 Postgres & Redis
 pnpm --filter @makeabet/api prisma:generate
 pnpm --filter @makeabet/api prisma:migrate
-
-# 啟動開發環境（web, api, worker）
 pnpm dev
 ```
 

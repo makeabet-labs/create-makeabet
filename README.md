@@ -58,15 +58,9 @@ Merchant-specific stubs live under `apps/web/src/modules/merchant` and `apps/api
 ```bash
 cd my-makeabet-app
 pnpm install
-
-# Start Postgres & Redis locally
-make docker-up
-
-# Generate Prisma client & run migrations (API package)
+docker compose up -d    # start Postgres & Redis
 pnpm --filter @makeabet/api prisma:generate
 pnpm --filter @makeabet/api prisma:migrate
-
-# Start dev services (web, api, worker)
 pnpm dev
 ```
 

@@ -12,17 +12,20 @@
 
 ```bash
 pnpm install
+docker compose up -d    # 啟動 Postgres & Redis
 pnpm dev
-```
-
-### 本地基礎設施
-
-```bash
-make docker-up
 ```
 
 - Postgres：`postgresql://makeabet:makeabet@localhost:5432/makeabet`
 - Redis：`redis://default:makeabet@localhost:6379`
+
+### 本地基礎設施
+
+```bash
+docker compose up -d
+# 或使用 Makefile
+# make docker-up
+```
 
 ### Hardhat 指令
 
