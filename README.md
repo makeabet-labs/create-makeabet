@@ -36,7 +36,7 @@ node packages/create-makeabet/dist/cli.js my-app \
 
 Flags:
 - `--merchant` / `-m` – keep the merchant portal module (omit to remove it)
-- `--chain <sepolia|arbitrum-sepolia|base-sepolia>` – default `sepolia`
+- `--chain <sepolia|arbitrum-sepolia|solana-devnet>` – default `sepolia`
 - `--package-manager <pnpm|npm|yarn>` – default `pnpm`
 
 ## Scaffold Contents

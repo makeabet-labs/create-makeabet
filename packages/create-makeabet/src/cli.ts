@@ -8,12 +8,51 @@ import ora from 'ora';
 import prompts from 'prompts';
 import chalk from 'chalk';
 
+type TargetChain = 'sepolia' | 'arbitrum-sepolia' | 'solana-devnet';
+type ChainType = 'evm' | 'solana';
+
 interface ScaffoldOptions {
   projectName: string;
   includeMerchantModule: boolean;
-  targetChain: string;
+  targetChain: TargetChain;
   packageManager: 'pnpm' | 'npm' | 'yarn';
 }
+
+interface ChainConfig {
+  id: TargetChain;
+  label: string;
+  chainType: ChainType;
+  pyusdAddress?: string;
+  pyusdMint?: string;
+  chainId?: string;
+  defaultRpc: string;
+}
+
+const CHAIN_CONFIG: Record<TargetChain, ChainConfig> = {
+  sepolia: {
+    id: 'sepolia',
+    label: 'Ethereum Sepolia',
+    chainType: 'evm',
+    pyusdAddress: '0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9',
+    chainId: '11155111',
+    defaultRpc: 'https://ethereum-sepolia.publicnode.com',
+  },
+  'arbitrum-sepolia': {
+    id: 'arbitrum-sepolia',
+    label: 'Arbitrum Sepolia',
+    chainType: 'evm',
+    pyusdAddress: '0xc6006A919685EA081697613373C50B6b46cd6F11',
+    chainId: '421614',
+    defaultRpc: 'https://arbitrum-sepolia.publicnode.com',
+  },
+  'solana-devnet': {
+    id: 'solana-devnet',
+    label: 'Solana Devnet',
+    chainType: 'solana',
+    pyusdMint: 'CXk2AMBfi3TwaEL2468s6zP8xq9NxTXjp9gjMgzeUynM',
+    defaultRpc: 'https://api.devnet.solana.com',
+  },
+};
 
 const TEMPLATE_ROOT = fileURLToPath(new URL('../../../templates/monorepo', import.meta.url));
 
@@ -51,11 +90,78 @@ async function copyRecursive(source: string, destination: string) {
   }
 }
 
-async function writeConfigFiles(targetDir: string, options: ScaffoldOptions) {
-  const envPath = path.join(targetDir, '.env.example');
-  const envContent = `# Core infrastructure\nPOSTGRES_URL=postgresql://makeabet:makeabet@localhost:5432/makeabet\nREDIS_URL=redis://default:makeabet@localhost:6379\nPAYPAL_CLIENT_ID=\nPAYPAL_CLIENT_SECRET=\nPYUSD_CONTRACT_ADDRESS=\nPYTH_PRICE_SERVICE_URL=https://hermes.pyth.network\nTARGET_CHAIN=${options.targetChain}\nENABLE_MERCHANT_PORTAL=${options.includeMerchantModule}\n`;
+function composeRootEnv(options: ScaffoldOptions, chainConfig: ChainConfig) {
+  const lines: string[] = [
+    '# Core infrastructure',
+    'POSTGRES_URL=postgresql://makeabet:makeabet@localhost:5432/makeabet',
+    'REDIS_URL=redis://default:makeabet@localhost:6379',
+    'PAYPAL_CLIENT_ID=',
+    'PAYPAL_CLIENT_SECRET=',
+    'PYTH_PRICE_SERVICE_URL=https://hermes.pyth.network',
+    `TARGET_CHAIN=${options.targetChain}`,
+    `CHAIN_TYPE=${chainConfig.chainType}`,
+    `ENABLE_MERCHANT_PORTAL=${options.includeMerchantModule}`,
+    'WALLETCONNECT_PROJECT_ID=',
+  ];
 
-  await fs.writeFile(envPath, envContent, 'utf8');
+  if (chainConfig.chainType === 'evm') {
+    lines.push(
+      `PYUSD_CONTRACT_ADDRESS=${chainConfig.pyusdAddress ?? ''}`,
+      'PYUSD_MINT_ADDRESS=',
+      `EVM_CHAIN_ID=${chainConfig.chainId ?? ''}`,
+      `EVM_RPC_URL=${chainConfig.defaultRpc}`,
+      'SOLANA_RPC_URL='
+    );
+  } else {
+    lines.push(
+      'PYUSD_CONTRACT_ADDRESS=',
+      `PYUSD_MINT_ADDRESS=${chainConfig.pyusdMint ?? ''}`,
+      'EVM_CHAIN_ID=',
+      'EVM_RPC_URL=',
+      `SOLANA_RPC_URL=${chainConfig.defaultRpc}`
+    );
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+function composeWebEnv(chainConfig: ChainConfig) {
+  const lines: string[] = [
+    `VITE_TARGET_CHAIN=${chainConfig.id}`,
+    `VITE_CHAIN_TYPE=${chainConfig.chainType}`,
+    `VITE_WALLETCONNECT_PROJECT_ID=`,
+  ];
+
+  if (chainConfig.chainType === 'evm') {
+    lines.push(
+      `VITE_EVM_CHAIN_ID=${chainConfig.chainId ?? ''}`,
+      `VITE_EVM_RPC_URL=${chainConfig.defaultRpc}`,
+      `VITE_PYUSD_ADDRESS=${chainConfig.pyusdAddress ?? ''}`,
+      'VITE_PYUSD_MINT=',
+      'VITE_SOLANA_RPC_URL='
+    );
+  } else {
+    lines.push(
+      'VITE_EVM_CHAIN_ID=',
+      'VITE_EVM_RPC_URL=',
+      'VITE_PYUSD_ADDRESS=',
+      `VITE_PYUSD_MINT=${chainConfig.pyusdMint ?? ''}`,
+      `VITE_SOLANA_RPC_URL=${chainConfig.defaultRpc}`
+    );
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+async function writeConfigFiles(targetDir: string, options: ScaffoldOptions) {
+  const chainConfig = CHAIN_CONFIG[options.targetChain];
+  const rootEnv = composeRootEnv(options, chainConfig);
+  const webEnv = composeWebEnv(chainConfig);
+
+  await fs.writeFile(path.join(targetDir, '.env.example'), rootEnv, 'utf8');
+  await fs.writeFile(path.join(targetDir, 'apps/web/.env.example'), webEnv, 'utf8');
+  await fs.writeFile(path.join(targetDir, 'apps/api/.env.example'), rootEnv, 'utf8');
+  await fs.writeFile(path.join(targetDir, 'apps/worker/.env.example'), rootEnv, 'utf8');
 }
 
 async function removeMerchantAssets(targetDir: string) {
@@ -139,7 +245,7 @@ async function promptForMissingOptions(partial: Partial<ScaffoldOptions>): Promi
       validate: (value: string) => (value.trim().length === 0 ? '請輸入名稱' : true),
     },
     {
-      type: 'toggle',
+      type: partial.includeMerchantModule !== undefined ? null : 'toggle',
       name: 'includeMerchantModule',
       message: '要同時產生商家管理模組嗎？',
       initial: partial.includeMerchantModule ?? true,
@@ -150,11 +256,10 @@ async function promptForMissingOptions(partial: Partial<ScaffoldOptions>): Promi
       type: partial.targetChain ? null : 'select',
       name: 'targetChain',
       message: '目標鏈別？',
-      choices: [
-        { title: 'Ethereum Sepolia', value: 'sepolia' },
-        { title: 'Arbitrum Sepolia', value: 'arbitrum-sepolia' },
-        { title: 'Base Sepolia', value: 'base-sepolia' }
-      ],
+      choices: Object.values(CHAIN_CONFIG).map((config) => ({
+        title: config.label,
+        value: config.id,
+      })),
       initial: 0,
     },
     {
@@ -178,7 +283,7 @@ async function promptForMissingOptions(partial: Partial<ScaffoldOptions>): Promi
   return {
     projectName: partial.projectName ?? responses.projectName,
     includeMerchantModule: partial.includeMerchantModule ?? responses.includeMerchantModule,
-    targetChain: partial.targetChain ?? responses.targetChain,
+    targetChain: (partial.targetChain ?? responses.targetChain) as TargetChain,
     packageManager: partial.packageManager ?? responses.packageManager,
   };
 }
@@ -188,13 +293,13 @@ const program = new Command()
   .description('Generate a MakeABet-ready monorepo with Hardhat + Fastify + Railway presets')
   .argument('[projectName]', 'Directory name for the new project')
   .option('-m, --merchant', 'Include merchant portal module')
-  .option('-c, --chain <chain>', 'Target chain id (sepolia | arbitrum-sepolia | base-sepolia)')
+  .option('-c, --chain <chain>', 'Target chain id (sepolia | arbitrum-sepolia | solana-devnet)')
   .option('-p, --package-manager <pm>', 'Package manager (pnpm | npm | yarn)')
   .action(async (projectName: string | undefined, opts: Record<string, string | boolean | undefined>) => {
     const options = await promptForMissingOptions({
       projectName,
       includeMerchantModule: typeof opts.merchant === 'boolean' ? opts.merchant : undefined,
-      targetChain: typeof opts.chain === 'string' ? opts.chain : undefined,
+      targetChain: typeof opts.chain === 'string' ? (opts.chain as TargetChain) : undefined,
       packageManager: typeof opts.packageManager === 'string' ? (opts.packageManager as ScaffoldOptions['packageManager']) : undefined,
     });
 

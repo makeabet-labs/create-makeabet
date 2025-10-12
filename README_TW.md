@@ -34,7 +34,7 @@ node packages/create-makeabet/dist/cli.js my-app \
 
 參數說明：
 - `--merchant` / `-m`：保留商家模組（預設會詢問，取消則自動移除對應檔案）
-- `--chain <sepolia|arbitrum-sepolia|base-sepolia>`：預設 `sepolia`
+- `--chain <sepolia|arbitrum-sepolia|solana-devnet>`：預設 `sepolia`
 - `--package-manager <pnpm|npm|yarn>`：預設 `pnpm`
 
 ## 生成內容概覽
