@@ -4,15 +4,21 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "concurrently -k \"pnpm chain\" \"pnpm dev:services\"",
+    "dev:services": "wait-on tcp:127.0.0.1:8545 && pnpm deploy:local && pnpm sync:local-env && turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "chain": "pnpm --filter @makeabet/contracts exec -- hardhat node --hostname 0.0.0.0",
+    "deploy:local": "pnpm --filter @makeabet/contracts exec -- hardhat run scripts/deploy-local.ts --network localhost",
+    "sync:local-env": "node scripts/sync-local-env.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
+    "concurrently": "^8.2.2",
     "prettier": "^3.6.2",
+    "wait-on": "^7.2.0",
     "turbo": "^2.5.8"
   }
 }

@@ -2,7 +2,6 @@
   "name": "@makeabet/contracts",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "hardhat compile",
     "compile": "hardhat compile",
@@ -11,6 +10,7 @@
     "lint": "solhint 'contracts/**/*.sol'",
     "format": "prettier --write 'contracts/**/*.sol'",
     "deploy": "hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:local": "hardhat run scripts/deploy-local.ts --network localhost",
     "updatePrice": "hardhat run scripts/updatePrice.ts --network sepolia",
     "createRoom": "hardhat run scripts/createRoom.ts --network sepolia",
     "settleRoom": "hardhat run scripts/settleRoom.ts --network sepolia"
@@ -18,9 +18,11 @@
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.1",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@pythnetwork/pyth-evm-js": "^1.14.0",
     "@pythnetwork/pyth-sdk-solidity": "^4.2.0",
     "@typechain/ethers-v6": "^0.5.1",
+    "@openzeppelin/contracts": "^5.0.2",
     "@types/node": "^20.11.32",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",

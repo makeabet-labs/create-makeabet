@@ -8,14 +8,17 @@ import fs from 'node:fs';
 import { registerRoutes } from './router';
 
 const envPaths = [
-  path.resolve(process.cwd(), '.env'),
-  path.resolve(process.cwd(), '../.env'),
-  path.resolve(process.cwd(), '../../.env'),
-];
+  '.env',
+  '.env.local',
+  '../.env',
+  '../.env.local',
+  '../../.env',
+  '../../.env.local',
+].map((relative) => path.resolve(process.cwd(), relative));
 
 for (const envPath of envPaths) {
   if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: false });
+    dotenv.config({ path: envPath, override: true });
   }
 }
 

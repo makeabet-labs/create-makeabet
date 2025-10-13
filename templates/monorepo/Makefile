@@ -7,13 +7,19 @@ endif
 
 ENV_FILE ?= .env
 
-.PHONY: setup dev docker-up docker-down contracts-compile contracts-test lint migrate
+.PHONY: setup dev chain deploy-local docker-up docker-down contracts-compile contracts-test lint migrate
 
 setup:
 	pnpm install
 
 dev:
-	turbo run dev --parallel
+	pnpm dev
+
+chain:
+	pnpm chain
+
+deploy-local:
+	pnpm deploy:local
 
 docker-up:
 	docker compose --env-file $(ENV_FILE) up -d

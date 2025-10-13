@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import '@rainbow-me/rainbowkit/styles.css';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit';
@@ -10,26 +10,46 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { arbitrumSepolia, sepolia } from 'wagmi/chains';
 
-type ChainType = 'evm' | 'solana';
-type TargetChain = 'sepolia' | 'arbitrum-sepolia' | 'solana-devnet';
+import { useChain } from './ChainProvider';
+
+export type ChainType = 'evm' | 'solana';
 
 interface WalletProviderProps {
   children: ReactNode;
 }
 
 export const WalletProvider = ({ children }: WalletProviderProps) => {
-  const chainType = (import.meta.env.VITE_CHAIN_TYPE as ChainType) ?? 'evm';
-  const targetChain = (import.meta.env.VITE_TARGET_CHAIN as TargetChain) ?? 'sepolia';
-  const selectedChain = targetChain === 'arbitrum-sepolia' ? arbitrumSepolia : sepolia;
+  const { chain } = useChain();
   const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '';
-  const rpcUrl =
-    import.meta.env.VITE_EVM_RPC_URL || selectedChain.rpcUrls.public?.http?.[0] || '';
 
-  const solanaEndpoint = import.meta.env.VITE_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
-  const solanaWallets = useMemo(
-    () => (chainType === 'solana' ? [new PhantomWalletAdapter(), new SolflareWalletAdapter()] : []),
-    [chainType]
-  );
+  if (chain.chainType === 'solana') {
+    const endpoint = import.meta.env.VITE_SOLANA_RPC_URL || chain.rpcUrl || 'https://api.devnet.solana.com';
+
+    return (
+      <ConnectionProvider endpoint={endpoint}>
+        <SolanaWalletProvider wallets={[new PhantomWalletAdapter(), new SolflareWalletAdapter()]} autoConnect>
+          <WalletModalProvider>{children}</WalletModalProvider>
+        </SolanaWalletProvider>
+      </ConnectionProvider>
+    );
+  }
+
+  const selectedChain =
+    chain.key === 'arbitrum-sepolia'
+      ? arbitrumSepolia
+      : chain.key === 'local-hardhat'
+        ? {
+            ...sepolia,
+            id: Number(chain.chainId ?? 31337),
+            name: 'Hardhat (Local)',
+            rpcUrls: {
+              default: { http: [chain.rpcUrl ?? 'http://127.0.0.1:8545'] },
+              public: { http: [chain.rpcUrl ?? 'http://127.0.0.1:8545'] },
+            },
+          }
+        : sepolia;
+
+  const rpcUrl = import.meta.env.VITE_EVM_RPC_URL || chain.rpcUrl || selectedChain.rpcUrls.public?.http?.[0] || '';
 
   const wagmiConfig = projectId
     ? getDefaultConfig({
@@ -51,20 +71,8 @@ export const WalletProvider = ({ children }: WalletProviderProps) => {
       });
 
   return (
-    <ConnectionProvider endpoint={solanaEndpoint}>
-      <SolanaWalletProvider wallets={solanaWallets} autoConnect={chainType === 'solana'}>
-        <WalletModalProvider>
-          {chainType === 'solana' ? (
-            children
-          ) : (
-            <WagmiProvider config={wagmiConfig}>
-              <RainbowKitProvider modalSize="compact">{children}</RainbowKitProvider>
-            </WagmiProvider>
-          )}
-        </WalletModalProvider>
-      </SolanaWalletProvider>
-    </ConnectionProvider>
+    <WagmiProvider config={wagmiConfig}>
+      <RainbowKitProvider modalSize="compact">{children}</RainbowKitProvider>
+    </WagmiProvider>
   );
 };
-
-export type { ChainType };

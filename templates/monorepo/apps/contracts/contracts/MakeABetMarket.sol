@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IPyth} from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import {PythStructs} from "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
 contract MakeABetMarket {
     struct Room {
@@ -56,7 +57,8 @@ contract MakeABetMarket {
         pyth.updatePriceFeeds{value: fee}(priceUpdateData);
 
         // For demo purpose we only need the price sign
-        int64 latestPrice = pyth.getPrice(room.priceFeedId).price;
+        PythStructs.Price memory latest = pyth.getPriceNoOlderThan(room.priceFeedId, 60);
+        int64 latestPrice = latest.price;
         room.outcome = latestPrice >= targetPrice;
         room.settled = true;
 

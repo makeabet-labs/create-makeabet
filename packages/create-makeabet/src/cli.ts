@@ -102,6 +102,15 @@ function composeRootEnv(options: ScaffoldOptions, chainConfig: ChainConfig) {
     `CHAIN_TYPE=${chainConfig.chainType}`,
     `ENABLE_MERCHANT_PORTAL=${options.includeMerchantModule}`,
     'WALLETCONNECT_PROJECT_ID=',
+    'LOCAL_CHAIN_ENABLED=false',
+    'LOCAL_CHAIN_ID=31337',
+    'LOCAL_RPC_URL=http://127.0.0.1:8545',
+    'LOCAL_PYUSD_ADDRESS=',
+    'LOCAL_PYUSD_MINT=',
+    'LOCAL_FAUCET_PRIVATE_KEY=',
+    'LOCAL_MARKET_ADDRESS=',
+    'LOCAL_FAUCET_ADDRESS=',
+    'MARKET_CONTRACT_ADDRESS=',
   ];
 
   if (chainConfig.chainType === 'evm') {
@@ -110,7 +119,8 @@ function composeRootEnv(options: ScaffoldOptions, chainConfig: ChainConfig) {
       'PYUSD_MINT_ADDRESS=',
       `EVM_CHAIN_ID=${chainConfig.chainId ?? ''}`,
       `EVM_RPC_URL=${chainConfig.defaultRpc}`,
-      'SOLANA_RPC_URL='
+      'SOLANA_RPC_URL=',
+      'MARKET_CONTRACT_ADDRESS='
     );
   } else {
     lines.push(
@@ -128,8 +138,15 @@ function composeRootEnv(options: ScaffoldOptions, chainConfig: ChainConfig) {
 function composeWebEnv(chainConfig: ChainConfig) {
   const lines: string[] = [
     `VITE_TARGET_CHAIN=${chainConfig.id}`,
+    `VITE_CHAIN_DEFAULT=${chainConfig.id}`,
     `VITE_CHAIN_TYPE=${chainConfig.chainType}`,
     `VITE_WALLETCONNECT_PROJECT_ID=`,
+    'VITE_LOCAL_CHAIN_ENABLED=false',
+    'VITE_LOCAL_CHAIN_ID=31337',
+    'VITE_LOCAL_RPC_URL=http://127.0.0.1:8545',
+    'VITE_LOCAL_PYUSD_ADDRESS=',
+    'VITE_LOCAL_PYUSD_MINT=',
+    'VITE_LOCAL_MARKET_ADDRESS=',
   ];
 
   if (chainConfig.chainType === 'evm') {
@@ -138,7 +155,8 @@ function composeWebEnv(chainConfig: ChainConfig) {
       `VITE_EVM_RPC_URL=${chainConfig.defaultRpc}`,
       `VITE_PYUSD_ADDRESS=${chainConfig.pyusdAddress ?? ''}`,
       'VITE_PYUSD_MINT=',
-      'VITE_SOLANA_RPC_URL='
+      'VITE_SOLANA_RPC_URL=',
+      'VITE_MARKET_ADDRESS='
     );
   } else {
     lines.push(
@@ -146,7 +164,8 @@ function composeWebEnv(chainConfig: ChainConfig) {
       'VITE_EVM_RPC_URL=',
       'VITE_PYUSD_ADDRESS=',
       `VITE_PYUSD_MINT=${chainConfig.pyusdMint ?? ''}`,
-      `VITE_SOLANA_RPC_URL=${chainConfig.defaultRpc}`
+      `VITE_SOLANA_RPC_URL=${chainConfig.defaultRpc}`,
+      'VITE_MARKET_ADDRESS='
     );
   }
 

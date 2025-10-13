@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   },
   "include": ["hardhat.config.ts", "scripts", "test", "contracts"]
 }

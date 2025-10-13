@@ -7,6 +7,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 
 import { ConnectWallet } from './components/ConnectWallet';
+import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
 
 interface AppConfig {
@@ -19,25 +20,8 @@ interface AppConfig {
   rpcUrl?: string;
 }
 
-const CHAIN_LABELS: Record<string, string> = {
-  sepolia: 'Ethereum Sepolia',
-  'arbitrum-sepolia': 'Arbitrum Sepolia',
-  'solana-devnet': 'Solana Devnet',
-};
-
-const CHAIN_ASSETS: Record<
-  string,
-  {
-    native: string;
-    stable: string;
-  }
-> = {
-  sepolia: { native: 'ETH', stable: 'PYUSD' },
-  'arbitrum-sepolia': { native: 'ETH', stable: 'PYUSD' },
-  'solana-devnet': { native: 'SOL', stable: 'PYUSD' },
-};
-
 export function App() {
+  const { chain } = useChain();
   const { data, isLoading } = useQuery<AppConfig>({
     queryKey: ['config'],
     queryFn: async () => {
@@ -46,33 +30,15 @@ export function App() {
     },
   });
 
-  const chainType = data?.chainType ?? 'evm';
-  const chainName = useMemo(
-    () => (data ? CHAIN_LABELS[data.targetChain] ?? data.targetChain : '—'),
-    [data]
-  );
-  const chainAssets = CHAIN_ASSETS[data?.targetChain ?? 'sepolia'] ?? { native: '—', stable: 'PYUSD' };
-  const pyusdLabel =
-    chainType === 'solana' ? 'PYUSD Mint Address' : 'PYUSD Contract Address';
-  const pyusdValue =
-    chainType === 'solana'
-      ? data?.pyusdMint && data.pyusdMint.length > 0
-        ? data.pyusdMint
-        : '填入 PYUSD Mint'
-      : data?.pyusdAddress && data.pyusdAddress.length > 0
-        ? data.pyusdAddress
-        : '填入 PYUSD Contract';
-  const rpcLabel = chainType === 'solana' ? 'Solana RPC' : 'EVM RPC';
-const rpcValue = data?.rpcUrl && data.rpcUrl.length > 0 ? data.rpcUrl : '設定於 .env';
-const chainIdValue =
-  chainType === 'evm'
-    ? import.meta.env.VITE_EVM_CHAIN_ID ||
-      (data?.targetChain === 'sepolia'
-        ? '11155111'
-        : data?.targetChain === 'arbitrum-sepolia'
-          ? '421614'
-          : '')
-    : undefined;
+  const chainType = chain.chainType;
+  const displayChainName = chain.name;
+  const displayChainId = chain.chainId;
+  const explorerTemplate = chain.blockExplorerAddressTemplate;
+
+  const pyusdFromConfig = chainType === 'solana' ? data?.pyusdMint : data?.pyusdAddress;
+  const displayPyusd = chainType === 'solana' ? pyusdFromConfig || chain.pyusdMint : pyusdFromConfig || chain.pyusdAddress;
+  const displayRpc = data?.rpcUrl && data.rpcUrl.length > 0 ? data.rpcUrl : chain.rpcUrl;
+  const pythEndpoint = data?.pythEndpoint || 'https://hermes.pyth.network';
 
   const { address, isConnected } = useAccount();
   const { publicKey } = useWallet();
@@ -80,11 +46,14 @@ const chainIdValue =
 
   const evmChainId = useMemo(() => {
     if (chainType !== 'evm') return undefined;
+    if (chain.chainId) return Number(chain.chainId);
     if (data?.targetChain === 'sepolia') return 11155111;
     if (data?.targetChain === 'arbitrum-sepolia') return 421614;
     return undefined;
-  }, [chainType, data?.targetChain]);
+  }, [chainType, chain.chainId, data?.targetChain]);
 
+  const nativeSymbol = chain.nativeSymbol || (chainType === 'solana' ? 'SOL' : 'ETH');
+  const stableSymbol = chain.stableSymbol || 'PYUSD';
   const pyusdDecimals = 6;
 
   const { data: nativeBalance } = useBalance({
@@ -96,13 +65,13 @@ const chainIdValue =
   });
 
   const { data: pyusdBalance } = useReadContract({
-    address: chainType === 'evm' && data?.pyusdAddress ? (data.pyusdAddress as `0x${string}`) : undefined,
+    address: chainType === 'evm' && displayPyusd ? (displayPyusd as `0x${string}`) : undefined,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     chainId: evmChainId,
     query: {
-      enabled: chainType === 'evm' && !!address && !!data?.pyusdAddress,
+      enabled: chainType === 'evm' && !!address && !!displayPyusd && displayPyusd.startsWith('0x'),
     },
   });
 
@@ -126,8 +95,8 @@ const chainIdValue =
           setSolanaNative((lamports / LAMPORTS_PER_SOL).toFixed(4));
         }
 
-        if (data?.pyusdMint) {
-          const mintKey = new PublicKey(data.pyusdMint);
+        if (displayPyusd) {
+          const mintKey = new PublicKey(displayPyusd);
           const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: mintKey });
           const tokenInfo = tokenAccounts.value?.[0]?.account?.data?.parsed?.info?.tokenAmount;
           if (!cancelled) {
@@ -156,7 +125,7 @@ const chainIdValue =
     return () => {
       cancelled = true;
     };
-  }, [chainType, connection, data?.pyusdMint, publicKey]);
+  }, [chainType, connection, displayPyusd, publicKey]);
 
   const formattedNativeBalance = useMemo(() => {
     if (chainType === 'solana') return solanaNative;
@@ -171,6 +140,14 @@ const chainIdValue =
     if (!pyusdBalance) return '載入中';
     return Number(formatUnits(pyusdBalance as bigint, pyusdDecimals)).toFixed(2);
   }, [address, chainType, isConnected, pyusdBalance, solanaPyusd]);
+
+  const addressExplorerLink = useMemo(() => {
+    if (!explorerTemplate) return undefined;
+    if (!address && !publicKey) return undefined;
+    const explorerAddress = chainType === 'solana' ? publicKey?.toBase58() : address;
+    if (!explorerAddress) return undefined;
+    return explorerTemplate.replace('{address}', explorerAddress);
+  }, [address, chainType, explorerTemplate, publicKey]);
 
   if (isLoading) {
     return <p className="status">載入設定中...</p>;
@@ -192,9 +169,15 @@ const chainIdValue =
           <dt>PayPal Client ID</dt>
           <dd>{data?.paypalClientId || '尚未設定'}</dd>
           <dt>Pyth Hermes Endpoint</dt>
-          <dd>{data?.pythEndpoint || 'https://hermes.pyth.network'}</dd>
+          <dd>{pythEndpoint}</dd>
           <dt>目標鏈別</dt>
-          <dd>{chainName}</dd>
+          <dd>{displayChainName}</dd>
+          {displayChainId && (
+            <>
+              <dt>Chain ID</dt>
+              <dd>{displayChainId}</dd>
+            </>
+          )}
         </dl>
       </section>
 
@@ -203,20 +186,24 @@ const chainIdValue =
         <dl>
           <dt>鏈類型</dt>
           <dd>{chainType === 'solana' ? 'Solana (Solana Wallet Adapter)' : 'EVM (RainbowKit + WalletConnect)'}</dd>
-          {chainIdValue && (
-            <>
-              <dt>Chain ID</dt>
-              <dd>{chainIdValue}</dd>
-            </>
-          )}
-          <dt>{pyusdLabel}</dt>
-          <dd>{pyusdValue}</dd>
-          <dt>{rpcLabel}</dt>
-          <dd>{rpcValue}</dd>
+          <dt>{chainType === 'solana' ? 'PYUSD Mint Address' : 'PYUSD Contract Address'}</dt>
+          <dd>{displayPyusd || '未設定'}</dd>
+          <dt>{chainType === 'solana' ? 'Solana RPC' : 'EVM RPC'}</dt>
+          <dd>{displayRpc || '設定於 .env'}</dd>
           {chainType === 'evm' && (
             <>
               <dt>WalletConnect Project ID</dt>
-              <dd>{import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID'}</dd>
+              <dd>{projectIdLabel()}</dd>
+            </>
+          )}
+          {addressExplorerLink && (
+            <>
+              <dt>Explorer</dt>
+              <dd>
+                <a href={addressExplorerLink} target="_blank" rel="noreferrer" className="link">
+                  查看地址
+                </a>
+              </dd>
             </>
           )}
         </dl>
@@ -227,12 +214,12 @@ const chainIdValue =
         <dl>
           <dt>Native Asset</dt>
           <dd className="asset-row">
-            <span className="asset-symbol">{chainAssets.native}</span>
+            <span className="asset-symbol">{nativeSymbol}</span>
             <span className="asset-value">{formattedNativeBalance}</span>
           </dd>
           <dt>Stablecoin</dt>
           <dd className="asset-row">
-            <span className="asset-symbol">{chainAssets.stable}</span>
+            <span className="asset-symbol">{stableSymbol}</span>
             <span className="asset-value">{formattedStableBalance}</span>
           </dd>
         </dl>
@@ -245,11 +232,15 @@ const chainIdValue =
           <li>
             {chainType === 'solana'
               ? '整合 Solana Program / Anchor，串接 PYUSD Mint 與 Pyth Price Feeds。'
-              : '使用 Hardhat 部署合約與設定 Pyth Price Feed。'}
+              : '使用 Hardhat 部署合約並設定 Pyth Price Feed。'}
           </li>
           <li>部署 API / Worker 至 Railway，前端至 Vercel 或 Railway Static。</li>
         </ol>
       </section>
     </main>
   );
+
+  function projectIdLabel() {
+    return import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID';
+  }
 }

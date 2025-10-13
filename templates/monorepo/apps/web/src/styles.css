@@ -105,3 +105,13 @@ li + li {
 .wallet-button:hover {
   background: #1e293b !important;
 }
+
+.link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
+}

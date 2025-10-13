@@ -7,6 +7,7 @@ import { Buffer } from 'buffer';
 
 import { App } from './App';
 import { WalletProvider } from './providers/WalletProvider';
+import { ChainProvider } from './providers/ChainProvider';
 import './styles.css';
 
 const queryClient = new QueryClient();
@@ -18,11 +19,13 @@ if (typeof window !== 'undefined' && !(window as any).Buffer) {
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <WalletProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </WalletProvider>
+      <ChainProvider>
+        <WalletProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </WalletProvider>
+      </ChainProvider>
     </QueryClientProvider>
   </StrictMode>
 );
