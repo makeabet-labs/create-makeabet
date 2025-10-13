@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
@@ -7,6 +7,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 
 import { ConnectWallet } from './components/ConnectWallet';
+import { ChainSwitcher } from './components/ChainSwitcher';
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
 
@@ -18,6 +19,12 @@ interface AppConfig {
   pyusdAddress?: string;
   pyusdMint?: string;
   rpcUrl?: string;
+}
+
+interface FaucetResponse {
+  ok: boolean;
+  transactions?: string[];
+  error?: string;
 }
 
 export function App() {
@@ -34,6 +41,7 @@ export function App() {
   const displayChainName = chain.name;
   const displayChainId = chain.chainId;
   const explorerTemplate = chain.blockExplorerAddressTemplate;
+  const isLocalChain = chain.key === 'local-hardhat';
 
   const pyusdFromConfig = chainType === 'solana' ? data?.pyusdMint : data?.pyusdAddress;
   const displayPyusd = chainType === 'solana' ? pyusdFromConfig || chain.pyusdMint : pyusdFromConfig || chain.pyusdAddress;
@@ -65,7 +73,7 @@ export function App() {
   });
 
   const { data: pyusdBalance } = useReadContract({
-    address: chainType === 'evm' && displayPyusd ? (displayPyusd as `0x${string}`) : undefined,
+    address: chainType === 'evm' && displayPyusd && displayPyusd.startsWith('0x') ? (displayPyusd as `0x${string}`) : undefined,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
@@ -149,6 +157,17 @@ export function App() {
     return explorerTemplate.replace('{address}', explorerAddress);
   }, [address, chainType, explorerTemplate, publicKey]);
 
+  const faucetMutation = useMutation({
+    mutationFn: async () => {
+      if (!address) throw new Error('請先連線 EVM 錢包');
+      const { data: response } = await axios.post<FaucetResponse>('/api/faucet', { address });
+      if (!response.ok) {
+        throw new Error(response.error ?? '請稍後重試');
+      }
+      return response.transactions ?? [];
+    },
+  });
+
   if (isLoading) {
     return <p className="status">載入設定中...</p>;
   }
@@ -160,7 +179,10 @@ export function App() {
           <h1>MakeABet Scaffold</h1>
           <p>PayPal + PYUSD + Pyth 黑客松啟動套件</p>
         </div>
-        <ConnectWallet chainType={chainType} />
+        <div className="topbar-actions">
+          <ChainSwitcher />
+          <ConnectWallet chainType={chainType} />
+        </div>
       </header>
 
       <section className="card">
@@ -193,7 +215,7 @@ export function App() {
           {chainType === 'evm' && (
             <>
               <dt>WalletConnect Project ID</dt>
-              <dd>{projectIdLabel()}</dd>
+              <dd>{walletConnectLabel()}</dd>
             </>
           )}
           {addressExplorerLink && (
@@ -223,6 +245,22 @@ export function App() {
             <span className="asset-value">{formattedStableBalance}</span>
           </dd>
         </dl>
+        {isLocalChain && chainType === 'evm' && (
+          <div className="faucet">
+            <button
+              type="button"
+              className="button"
+              disabled={faucetMutation.isPending || !isConnected || !address}
+              onClick={() => faucetMutation.mutate()}
+            >
+              {faucetMutation.isPending ? '發送中...' : '領取本地測試資產'}
+            </button>
+            {faucetMutation.isSuccess && <p className="status-success">已發送 1 ETH / 100 PYUSD</p>}
+            {faucetMutation.isError && (
+              <p className="status-error">{(faucetMutation.error as Error).message ?? '請稍後重試'}</p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="card">
@@ -240,7 +278,7 @@ export function App() {
     </main>
   );
 
-  function projectIdLabel() {
+  function walletConnectLabel() {
     return import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID';
   }
 }
