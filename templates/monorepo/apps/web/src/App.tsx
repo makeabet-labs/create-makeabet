@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
-import { ConnectWallet } from './components/ConnectWallet';
-import { ChainSwitcher } from './components/ChainSwitcher';
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
 
@@ -27,7 +27,53 @@ interface FaucetResponse {
   error?: string;
 }
 
+function ChainSwitcher() {
+  const { chainKey, availableChains, setChain } = useChain();
+
+  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setChain(event.target.value as typeof chainKey);
+  };
+
+  return (
+    <label className="chain-switcher">
+      <span className="chain-switcher__label">Chain</span>
+      <div className="chain-switcher__control">
+        <span>{availableChains.find((item) => item.key === chainKey)?.name ?? chainKey}</span>
+        <select value={chainKey} onChange={handleChange} aria-label="Select chain">
+          {availableChains.map((chain) => (
+            <option key={chain.key} value={chain.key}>
+              {chain.name}
+            </option>
+          ))}
+        </select>
+        <svg viewBox="0 0 20 20" className="chain-switcher__icon" aria-hidden="true">
+          <path
+            d="M5.25 7.5 10 12.5l4.75-5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </label>
+  );
+}
+
+function ConnectWallet({ chainType }: { chainType: ChainType }) {
+  if (chainType === 'solana') {
+    return <WalletMultiButton className="wallet-button" />;
+  }
+
+  return <ConnectButton accountStatus="summary" chainStatus="icon" showBalance={false} />;
+}
+
 export function App() {
+  useEffect(() => {
+    document.body.classList.remove('landing-page-root');
+  }, []);
+
   const { chain } = useChain();
   const { data, isLoading } = useQuery<AppConfig>({
     queryKey: ['config'],
@@ -173,13 +219,13 @@ export function App() {
   }
 
   return (
-    <main className="layout">
-      <header className="topbar">
-        <div>
-          <h1>MakeABet Scaffold</h1>
-          <p>PayPal + PYUSD + Pyth 黑客松啟動套件</p>
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <div className="dashboard-header__meta">
+          <h1>Wallet & Stack Overview</h1>
+          <p>Monitor balances, RPC endpoints, and local Hardhat automation.</p>
         </div>
-        <div className="topbar-actions">
+        <div className="dashboard-header__actions">
           <ChainSwitcher />
           <ConnectWallet chainType={chainType} />
         </div>
@@ -255,7 +301,12 @@ export function App() {
             >
               {faucetMutation.isPending ? '發送中...' : '領取本地測試資產'}
             </button>
-            {faucetMutation.isSuccess && <p className="status-success">已發送 1 ETH / 100 PYUSD</p>}
+            {faucetMutation.isSuccess && (
+              <p className="status-success">
+                已發送 1 ETH / 100 PYUSD
+                {faucetMutation.data?.length ? ` (tx: ${faucetMutation.data[0]})` : ''}
+              </p>
+            )}
             {faucetMutation.isError && (
               <p className="status-error">{(faucetMutation.error as Error).message ?? '請稍後重試'}</p>
             )}
@@ -275,7 +326,7 @@ export function App() {
           <li>部署 API / Worker 至 Railway，前端至 Vercel 或 Railway Static。</li>
         </ol>
       </section>
-    </main>
+    </div>
   );
 
   function walletConnectLabel() {
