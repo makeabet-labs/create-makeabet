@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { Tabs } from '@mantine/core';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
@@ -10,6 +11,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
+import { useTranslation } from './i18n';
 
 interface AppConfig {
   paypalClientId: string;
@@ -27,54 +29,33 @@ interface FaucetResponse {
   error?: string;
 }
 
-function ChainSwitcher() {
-  const { chainKey, availableChains, setChain } = useChain();
+type TabValue = 'overview' | 'scaffold';
 
-  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setChain(event.target.value as typeof chainKey);
-  };
-
-  return (
-    <label className="chain-switcher">
-      <span className="chain-switcher__label">Chain</span>
-      <div className="chain-switcher__control">
-        <span>{availableChains.find((item) => item.key === chainKey)?.name ?? chainKey}</span>
-        <select value={chainKey} onChange={handleChange} aria-label="Select chain">
-          {availableChains.map((chain) => (
-            <option key={chain.key} value={chain.key}>
-              {chain.name}
-            </option>
-          ))}
-        </select>
-        <svg viewBox="0 0 20 20" className="chain-switcher__icon" aria-hidden="true">
-          <path
-            d="M5.25 7.5 10 12.5l4.75-5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    </label>
-  );
-}
-
-function ConnectWallet({ chainType }: { chainType: ChainType }) {
-  if (chainType === 'solana') {
-    return <WalletMultiButton className="wallet-button" />;
-  }
-
-  return <ConnectButton accountStatus="summary" chainStatus="icon" showBalance={false} />;
-}
+const TAB_STORAGE_KEY = 'makeabet:app-tab';
 
 export function App() {
+  const { t } = useTranslation();
+
   useEffect(() => {
     document.body.classList.remove('landing-page-root');
   }, []);
 
   const { chain } = useChain();
+
+  const [activeTab, setActiveTab] = useState<TabValue>(() => {
+    if (typeof window === 'undefined') {
+      return 'overview';
+    }
+    const stored = window.localStorage.getItem(TAB_STORAGE_KEY) as TabValue | null;
+    return stored === 'scaffold' ? 'scaffold' : 'overview';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(TAB_STORAGE_KEY, activeTab);
+    }
+  }, [activeTab]);
+
   const { data, isLoading } = useQuery<AppConfig>({
     queryKey: ['config'],
     queryFn: async () => {
@@ -90,7 +71,8 @@ export function App() {
   const isLocalChain = chain.key === 'local-hardhat';
 
   const pyusdFromConfig = chainType === 'solana' ? data?.pyusdMint : data?.pyusdAddress;
-  const displayPyusd = chainType === 'solana' ? pyusdFromConfig || chain.pyusdMint : pyusdFromConfig || chain.pyusdAddress;
+  const displayPyusd =
+    chainType === 'solana' ? pyusdFromConfig || chain.pyusdMint : pyusdFromConfig || chain.pyusdAddress;
   const displayRpc = data?.rpcUrl && data.rpcUrl.length > 0 ? data.rpcUrl : chain.rpcUrl;
   const pythEndpoint = data?.pythEndpoint || 'https://hermes.pyth.network';
 
@@ -119,7 +101,10 @@ export function App() {
   });
 
   const { data: pyusdBalance } = useReadContract({
-    address: chainType === 'evm' && displayPyusd && displayPyusd.startsWith('0x') ? (displayPyusd as `0x${string}`) : undefined,
+    address:
+      chainType === 'evm' && displayPyusd && displayPyusd.startsWith('0x')
+        ? (displayPyusd as `0x${string}`)
+        : undefined,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
@@ -214,122 +199,264 @@ export function App() {
     },
   });
 
+  const displayedWallet = chainType === 'solana' ? publicKey?.toBase58() : address ?? undefined;
+  const formattedWallet = displayedWallet ? formatAddress(displayedWallet) : undefined;
+
+  const debugDocsLink = 'https://docs.scaffoldeth.io/scaffold-eth/technical-reference/debugger';
+  const explorerDocsLink = 'https://docs.scaffoldeth.io/scaffold-eth/technical-reference/block-explorer';
+  const projectDocsLink = 'https://github.com/MakeABet-Labs';
+
   if (isLoading) {
     return <p className="status">載入設定中...</p>;
   }
 
   return (
-    <div className="dashboard">
-      <header className="dashboard-header">
-        <div className="dashboard-header__meta">
-          <h1>Wallet & Stack Overview</h1>
-          <p>Monitor balances, RPC endpoints, and local Hardhat automation.</p>
-        </div>
-        <div className="dashboard-header__actions">
-          <ChainSwitcher />
-          <ConnectWallet chainType={chainType} />
-        </div>
-      </header>
+    <Tabs
+      className="app-tabs"
+      value={activeTab}
+      onChange={(value) => setActiveTab((value as TabValue) ?? 'overview')}
+    >
+      <Tabs.List className="app-tabs__list">
+        <Tabs.Tab className="app-tabs__tab" value="overview">
+          {t('tabs.overview')}
+        </Tabs.Tab>
+        <Tabs.Tab className="app-tabs__tab" value="scaffold">
+          {t('tabs.scaffold')}
+        </Tabs.Tab>
+      </Tabs.List>
 
-      <section className="card">
-        <h2>環境設定</h2>
-        <dl>
-          <dt>PayPal Client ID</dt>
-          <dd>{data?.paypalClientId || '尚未設定'}</dd>
-          <dt>Pyth Hermes Endpoint</dt>
-          <dd>{pythEndpoint}</dd>
-          <dt>目標鏈別</dt>
-          <dd>{displayChainName}</dd>
-          {displayChainId && (
-            <>
-              <dt>Chain ID</dt>
-              <dd>{displayChainId}</dd>
-            </>
-          )}
-        </dl>
-      </section>
+      <Tabs.Panel value="overview" className="app-tabs__panel">
+        <div className="dashboard">
+          <header className="dashboard-header">
+            <div className="dashboard-header__meta">
+              <h1>Wallet & Stack Overview</h1>
+              <p>Monitor balances, RPC endpoints, and local Hardhat automation.</p>
+            </div>
+            <div className="dashboard-header__actions">
+              <ChainSwitcher />
+              <ConnectWallet chainType={chainType} />
+            </div>
+          </header>
 
-      <section className="card">
-        <h2>鏈與錢包設定</h2>
-        <dl>
-          <dt>鏈類型</dt>
-          <dd>{chainType === 'solana' ? 'Solana (Solana Wallet Adapter)' : 'EVM (RainbowKit + WalletConnect)'}</dd>
-          <dt>{chainType === 'solana' ? 'PYUSD Mint Address' : 'PYUSD Contract Address'}</dt>
-          <dd>{displayPyusd || '未設定'}</dd>
-          <dt>{chainType === 'solana' ? 'Solana RPC' : 'EVM RPC'}</dt>
-          <dd>{displayRpc || '設定於 .env'}</dd>
-          {chainType === 'evm' && (
-            <>
-              <dt>WalletConnect Project ID</dt>
-              <dd>{walletConnectLabel()}</dd>
-            </>
-          )}
-          {addressExplorerLink && (
-            <>
-              <dt>Explorer</dt>
-              <dd>
-                <a href={addressExplorerLink} target="_blank" rel="noreferrer" className="link">
-                  查看地址
-                </a>
+          <section className="card">
+            <h2>環境設定</h2>
+            <dl>
+              <dt>PayPal Client ID</dt>
+              <dd>{data?.paypalClientId || '尚未設定'}</dd>
+              <dt>Pyth Hermes Endpoint</dt>
+              <dd>{pythEndpoint}</dd>
+              <dt>目標鏈別</dt>
+              <dd>{displayChainName}</dd>
+              {displayChainId && (
+                <>
+                  <dt>Chain ID</dt>
+                  <dd>{displayChainId}</dd>
+                </>
+              )}
+            </dl>
+          </section>
+
+          <section className="card">
+            <h2>鏈與錢包設定</h2>
+            <dl>
+              <dt>鏈類型</dt>
+              <dd>{chainType === 'solana' ? 'Solana (Solana Wallet Adapter)' : 'EVM (RainbowKit + WalletConnect)'}</dd>
+              <dt>{chainType === 'solana' ? 'PYUSD Mint Address' : 'PYUSD Contract Address'}</dt>
+              <dd>{displayPyusd || '未設定'}</dd>
+              <dt>{chainType === 'solana' ? 'Solana RPC' : 'EVM RPC'}</dt>
+              <dd>{displayRpc || '設定於 .env'}</dd>
+              {chainType === 'evm' && (
+                <>
+                  <dt>WalletConnect Project ID</dt>
+                  <dd>{walletConnectLabel()}</dd>
+                </>
+              )}
+              {addressExplorerLink && (
+                <>
+                  <dt>Explorer</dt>
+                  <dd>
+                    <a href={addressExplorerLink} target="_blank" rel="noreferrer" className="link">
+                      查看地址
+                    </a>
+                  </dd>
+                </>
+              )}
+            </dl>
+          </section>
+
+          <section className="card">
+            <h2>資產概覽</h2>
+            <dl>
+              <dt>Native Asset</dt>
+              <dd className="asset-row">
+                <span className="asset-symbol">{nativeSymbol}</span>
+                <span className="asset-value">{formattedNativeBalance}</span>
               </dd>
-            </>
-          )}
-        </dl>
-      </section>
-
-      <section className="card">
-        <h2>資產概覽</h2>
-        <dl>
-          <dt>Native Asset</dt>
-          <dd className="asset-row">
-            <span className="asset-symbol">{nativeSymbol}</span>
-            <span className="asset-value">{formattedNativeBalance}</span>
-          </dd>
-          <dt>Stablecoin</dt>
-          <dd className="asset-row">
-            <span className="asset-symbol">{stableSymbol}</span>
-            <span className="asset-value">{formattedStableBalance}</span>
-          </dd>
-        </dl>
-        {isLocalChain && chainType === 'evm' && (
-          <div className="faucet">
-            <button
-              type="button"
-              className="button"
-              disabled={faucetMutation.isPending || !isConnected || !address}
-              onClick={() => faucetMutation.mutate()}
-            >
-              {faucetMutation.isPending ? '發送中...' : '領取本地測試資產'}
-            </button>
-            {faucetMutation.isSuccess && (
-              <p className="status-success">
-                已發送 1 ETH / 100 PYUSD
-                {faucetMutation.data?.length ? ` (tx: ${faucetMutation.data[0]})` : ''}
-              </p>
+              <dt>Stablecoin</dt>
+              <dd className="asset-row">
+                <span className="asset-symbol">{stableSymbol}</span>
+                <span className="asset-value">{formattedStableBalance}</span>
+              </dd>
+            </dl>
+            {isLocalChain && chainType === 'evm' && (
+              <div className="faucet">
+                <button
+                  type="button"
+                  className="button"
+                  disabled={faucetMutation.isPending || !isConnected || !address}
+                  onClick={() => faucetMutation.mutate()}
+                >
+                  {faucetMutation.isPending ? '發送中...' : '領取本地測試資產'}
+                </button>
+                {faucetMutation.isSuccess && (
+                  <p className="status-success">
+                    已發送 1 ETH / 100 PYUSD
+                    {faucetMutation.data?.length ? ` (tx: ${faucetMutation.data[0]})` : ''}
+                  </p>
+                )}
+                {faucetMutation.isError && (
+                  <p className="status-error">{(faucetMutation.error as Error).message ?? '請稍後重試'}</p>
+                )}
+              </div>
             )}
-            {faucetMutation.isError && (
-              <p className="status-error">{(faucetMutation.error as Error).message ?? '請稍後重試'}</p>
-            )}
-          </div>
-        )}
-      </section>
+          </section>
 
-      <section className="card">
-        <h2>下一步</h2>
-        <ol>
-          <li>填入 PayPal Sandbox OAuth、PYUSD、Pyth、RPC 設定於 `.env`。</li>
-          <li>
-            {chainType === 'solana'
-              ? '整合 Solana Program / Anchor，串接 PYUSD Mint 與 Pyth Price Feeds。'
-              : '使用 Hardhat 部署合約並設定 Pyth Price Feed。'}
-          </li>
-          <li>部署 API / Worker 至 Railway，前端至 Vercel 或 Railway Static。</li>
-        </ol>
-      </section>
-    </div>
+          <section className="card">
+            <h2>下一步</h2>
+            <ol>
+              <li>填入 PayPal Sandbox OAuth、PYUSD、Pyth、RPC 設定於 `.env`。</li>
+              <li>
+                {chainType === 'solana'
+                  ? '整合 Solana Program / Anchor，串接 PYUSD Mint 與 Pyth Price Feeds。'
+                  : '使用 Hardhat 部署合約並設定 Pyth Price Feed。'}
+              </li>
+              <li>部署 API / Worker 至 Railway，前端至 Vercel 或 Railway Static。</li>
+            </ol>
+          </section>
+        </div>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="scaffold" className="app-tabs__panel">
+        <div className="scaffold-panel">
+          <header className="scaffold-panel__header">
+            <div className="scaffold-panel__headline">
+              <span className="scaffold-panel__eyebrow">{t('scaffold.home.welcome')}</span>
+              <h1>{t('scaffold.home.title')}</h1>
+              <p className="scaffold-panel__subtitle">{t('scaffold.home.subtitle')}</p>
+              <p className="scaffold-panel__network">{t('scaffold.home.targetNetwork', { network: chain.name })}</p>
+            </div>
+            <div className="scaffold-panel__actions">
+              <ChainSwitcher />
+              <ConnectWallet chainType={chainType} />
+            </div>
+          </header>
+
+          <section className="scaffold-panel__address">
+            <h2>{t('scaffold.home.connected')}</h2>
+            <code className="scaffold-panel__code">
+              {formattedWallet ?? t('scaffold.home.noAddress')}
+            </code>
+          </section>
+
+          <section className="scaffold-panel__instructions">
+            <p>{t('scaffold.home.instructions.ui')}</p>
+            <p>{t('scaffold.home.instructions.contracts')}</p>
+            <p>{t('scaffold.home.instructions.dev')}</p>
+          </section>
+
+          <section className="scaffold-panel__cards">
+            <article className="scaffold-card">
+              <h3>{t('scaffold.home.cards.debug.title')}</h3>
+              <p>{t('scaffold.home.cards.debug.description')}</p>
+              <a
+                className="scaffold-card__link"
+                href={debugDocsLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t('scaffold.home.cards.debug.cta')}
+              </a>
+            </article>
+            <article className="scaffold-card">
+              <h3>{t('scaffold.home.cards.explorer.title')}</h3>
+              <p>{t('scaffold.home.cards.explorer.description')}</p>
+              <a
+                className="scaffold-card__link"
+                href={explorerDocsLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t('scaffold.home.cards.explorer.cta')}
+              </a>
+            </article>
+            <article className="scaffold-card">
+              <h3>{t('scaffold.home.cards.docs.title')}</h3>
+              <p>{t('scaffold.home.cards.docs.description')}</p>
+              <a
+                className="scaffold-card__link"
+                href={projectDocsLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t('scaffold.home.cards.docs.cta')}
+              </a>
+            </article>
+          </section>
+        </div>
+      </Tabs.Panel>
+    </Tabs>
   );
 
   function walletConnectLabel() {
     return import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID';
   }
+}
+
+function ChainSwitcher() {
+  const { chainKey, availableChains, setChain } = useChain();
+
+  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setChain(event.target.value as typeof chainKey);
+  };
+
+  return (
+    <label className="chain-switcher">
+      <span className="chain-switcher__label">Chain</span>
+      <div className="chain-switcher__control">
+        <span>{availableChains.find((item) => item.key === chainKey)?.name ?? chainKey}</span>
+        <select value={chainKey} onChange={handleChange} aria-label="Select chain">
+          {availableChains.map((chain) => (
+            <option key={chain.key} value={chain.key}>
+              {chain.name}
+            </option>
+          ))}
+        </select>
+        <svg viewBox="0 0 20 20" className="chain-switcher__icon" aria-hidden="true">
+          <path
+            d="M5.25 7.5 10 12.5l4.75-5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </label>
+  );
+}
+
+function ConnectWallet({ chainType }: { chainType: ChainType }) {
+  if (chainType === 'solana') {
+    return <WalletMultiButton className="wallet-button" />;
+  }
+
+  return <ConnectButton accountStatus="summary" chainStatus="icon" showBalance={false} />;
+}
+
+function formatAddress(value: string) {
+  if (value.length <= 12) {
+    return value;
+  }
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
