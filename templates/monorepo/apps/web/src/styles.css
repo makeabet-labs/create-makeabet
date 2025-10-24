@@ -415,3 +415,119 @@ li + li {
     flex: 1 1 100%;
   }
 }
+
+.betting-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.betting-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(49, 91, 255, 0.4), rgba(20, 220, 200, 0.35));
+  padding: 2.75rem 2.25rem;
+  box-shadow: 0 26px 60px -24px rgba(12, 18, 46, 0.35);
+}
+
+.betting-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.2), transparent 55%),
+    radial-gradient(circle at 75% 70%, rgba(255, 255, 255, 0.15), transparent 55%);
+  pointer-events: none;
+}
+
+.betting-hero__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: #f8fbff;
+}
+
+.betting-hero__headline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 540px;
+}
+
+.betting-hero__headline h1 {
+  margin: 0;
+  font-size: 2.4rem;
+}
+
+.betting-hero__headline p {
+  margin: 0;
+  color: rgba(248, 252, 255, 0.82);
+  font-size: 1.05rem;
+}
+
+.betting-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.betting-spotlight {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.betting-spotlight__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.betting-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.bet-modal__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bet-modal__market {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: rgba(241, 245, 249, 0.7);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.bet-modal__selection {
+  display: grid;
+  gap: 1rem;
+}
+
+.bet-modal__selection-control {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bet-modal__status {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .betting-hero {
+    padding: 2rem 1.5rem;
+  }
+
+  .betting-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+

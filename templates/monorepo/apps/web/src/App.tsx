@@ -8,6 +8,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { BettingExperience } from './components/BettingExperience';
 
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
@@ -72,7 +73,9 @@ export function App() {
 
   const pyusdFromConfig = chainType === 'solana' ? data?.pyusdMint : data?.pyusdAddress;
   const displayPyusd =
-    chainType === 'solana' ? pyusdFromConfig || chain.pyusdMint : pyusdFromConfig || chain.pyusdAddress;
+    chainType === 'solana'
+      ? pyusdFromConfig || chain.pyusdMint
+      : pyusdFromConfig || chain.pyusdAddress;
   const displayRpc = data?.rpcUrl && data.rpcUrl.length > 0 ? data.rpcUrl : chain.rpcUrl;
   const pythEndpoint = data?.pythEndpoint || 'https://hermes.pyth.network';
 
@@ -136,7 +139,9 @@ export function App() {
 
         if (displayPyusd) {
           const mintKey = new PublicKey(displayPyusd);
-          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, { mint: mintKey });
+          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+            mint: mintKey,
+          });
           const tokenInfo = tokenAccounts.value?.[0]?.account?.data?.parsed?.info?.tokenAmount;
           if (!cancelled) {
             if (tokenInfo) {
@@ -199,12 +204,8 @@ export function App() {
     },
   });
 
-  const displayedWallet = chainType === 'solana' ? publicKey?.toBase58() : address ?? undefined;
+  const displayedWallet = chainType === 'solana' ? publicKey?.toBase58() : (address ?? undefined);
   const formattedWallet = displayedWallet ? formatAddress(displayedWallet) : undefined;
-
-  const debugDocsLink = 'https://docs.scaffoldeth.io/scaffold-eth/technical-reference/debugger';
-  const explorerDocsLink = 'https://docs.scaffoldeth.io/scaffold-eth/technical-reference/block-explorer';
-  const projectDocsLink = 'https://github.com/MakeABet-Labs';
 
   if (isLoading) {
     return <p className="status">載入設定中...</p>;
@@ -260,7 +261,11 @@ export function App() {
             <h2>鏈與錢包設定</h2>
             <dl>
               <dt>鏈類型</dt>
-              <dd>{chainType === 'solana' ? 'Solana (Solana Wallet Adapter)' : 'EVM (RainbowKit + WalletConnect)'}</dd>
+              <dd>
+                {chainType === 'solana'
+                  ? 'Solana (Solana Wallet Adapter)'
+                  : 'EVM (RainbowKit + WalletConnect)'}
+              </dd>
               <dt>{chainType === 'solana' ? 'PYUSD Mint Address' : 'PYUSD Contract Address'}</dt>
               <dd>{displayPyusd || '未設定'}</dd>
               <dt>{chainType === 'solana' ? 'Solana RPC' : 'EVM RPC'}</dt>
@@ -315,7 +320,9 @@ export function App() {
                   </p>
                 )}
                 {faucetMutation.isError && (
-                  <p className="status-error">{(faucetMutation.error as Error).message ?? '請稍後重試'}</p>
+                  <p className="status-error">
+                    {(faucetMutation.error as Error).message ?? '請稍後重試'}
+                  </p>
                 )}
               </div>
             )}
@@ -337,78 +344,22 @@ export function App() {
       </Tabs.Panel>
 
       <Tabs.Panel value="scaffold" className="app-tabs__panel">
-        <div className="scaffold-panel">
-          <header className="scaffold-panel__header">
-            <div className="scaffold-panel__headline">
-              <span className="scaffold-panel__eyebrow">{t('scaffold.home.welcome')}</span>
-              <h1>{t('scaffold.home.title')}</h1>
-              <p className="scaffold-panel__subtitle">{t('scaffold.home.subtitle')}</p>
-              <p className="scaffold-panel__network">{t('scaffold.home.targetNetwork', { network: chain.name })}</p>
-            </div>
-            <div className="scaffold-panel__actions">
-              <ChainSwitcher />
-              <ConnectWallet chainType={chainType} />
-            </div>
-          </header>
-
-          <section className="scaffold-panel__address">
-            <h2>{t('scaffold.home.connected')}</h2>
-            <code className="scaffold-panel__code">
-              {formattedWallet ?? t('scaffold.home.noAddress')}
-            </code>
-          </section>
-
-          <section className="scaffold-panel__instructions">
-            <p>{t('scaffold.home.instructions.ui')}</p>
-            <p>{t('scaffold.home.instructions.contracts')}</p>
-            <p>{t('scaffold.home.instructions.dev')}</p>
-          </section>
-
-          <section className="scaffold-panel__cards">
-            <article className="scaffold-card">
-              <h3>{t('scaffold.home.cards.debug.title')}</h3>
-              <p>{t('scaffold.home.cards.debug.description')}</p>
-              <a
-                className="scaffold-card__link"
-                href={debugDocsLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t('scaffold.home.cards.debug.cta')}
-              </a>
-            </article>
-            <article className="scaffold-card">
-              <h3>{t('scaffold.home.cards.explorer.title')}</h3>
-              <p>{t('scaffold.home.cards.explorer.description')}</p>
-              <a
-                className="scaffold-card__link"
-                href={explorerDocsLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t('scaffold.home.cards.explorer.cta')}
-              </a>
-            </article>
-            <article className="scaffold-card">
-              <h3>{t('scaffold.home.cards.docs.title')}</h3>
-              <p>{t('scaffold.home.cards.docs.description')}</p>
-              <a
-                className="scaffold-card__link"
-                href={projectDocsLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t('scaffold.home.cards.docs.cta')}
-              </a>
-            </article>
-          </section>
-        </div>
+        <BettingExperience
+          chainName={chain.name}
+          chainSwitcher={<ChainSwitcher />}
+          connectWallet={<ConnectWallet chainType={chainType} />}
+          displayedWallet={displayedWallet}
+          formattedWallet={formattedWallet}
+        />
       </Tabs.Panel>
     </Tabs>
   );
 
   function walletConnectLabel() {
-    return import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID';
+    return (
+      import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ||
+      '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID'
+    );
   }
 }
 
