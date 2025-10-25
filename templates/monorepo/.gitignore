@@ -1,11 +1,22 @@
+# Dependencies
 node_modules
+.pnpm-store
+
+# Environment files
 .env
 .env.*
+.env.local
+
+# Build outputs
 dist
 build
 coverage
+
+# Contract deployment artifacts
 apps/contracts/deployments/
-.pnpm-store
+apps/contracts/deployments/local.json
+
+# IDE
 .DS_Store
 .idea
 .vscode

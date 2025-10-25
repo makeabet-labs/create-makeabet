@@ -7,6 +7,9 @@ interface ChainContextValue {
   chainKey: ChainKey;
   setChain: (key: ChainKey) => void;
   availableChains: ChainMetadata[];
+  isLocalChain: boolean;
+  isFaucetAvailable: boolean;
+  getExplorerUrl: (type: 'address' | 'tx', value: string) => string | null;
 }
 
 const ChainContext = createContext<ChainContextValue | undefined>(undefined);
@@ -33,14 +36,42 @@ export function ChainProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const isLocalChain = useMemo(() => chainKey === 'local-hardhat', [chainKey]);
+
+  const isFaucetAvailable = useMemo(() => {
+    return isLocalChain && import.meta.env.VITE_LOCAL_CHAIN_ENABLED === 'true';
+  }, [isLocalChain]);
+
+  const getExplorerUrl = (type: 'address' | 'tx', value: string): string | null => {
+    const chain = CHAIN_METADATA[chainKey];
+    
+    // Local chain has no block explorer
+    if (chainKey === 'local-hardhat') {
+      return null;
+    }
+
+    if (type === 'address' && chain.blockExplorerAddressTemplate) {
+      return chain.blockExplorerAddressTemplate.replace('{address}', value);
+    }
+
+    if (type === 'tx' && chain.explorerUrl) {
+      return `${chain.explorerUrl}/tx/${value}`;
+    }
+
+    return null;
+  };
+
   const value = useMemo<ChainContextValue>(
     () => ({
       chainKey,
       chain: CHAIN_METADATA[chainKey],
       setChain,
       availableChains: Object.values(CHAIN_METADATA),
+      isLocalChain,
+      isFaucetAvailable,
+      getExplorerUrl,
     }),
-    [chainKey]
+    [chainKey, isLocalChain, isFaucetAvailable]
   );
 
   return <ChainContext.Provider value={value}>{children}</ChainContext.Provider>;

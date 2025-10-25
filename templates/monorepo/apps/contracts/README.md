@@ -47,22 +47,102 @@ pnpm test
 
 Located in `test/MakeABetMarket.test.ts`
 
+**Example TypeScript Test:**
+```typescript
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
+
+describe('MakeABetMarket', function () {
+  it('Should deploy with correct initial state', async function () {
+    const [owner] = await ethers.getSigners();
+    const Market = await ethers.getContractFactory('MakeABetMarket');
+    const market = await Market.deploy(pythAddress);
+    
+    expect(await market.owner()).to.equal(owner.address);
+  });
+});
+```
+
 ### Solidity Tests (Forge-style)
 
-Native Solidity tests using Hardhat 3's built-in support:
-
-```bash
-pnpm test
-```
+Native Solidity tests demonstrating Hardhat 3's compatibility with Forge-style testing:
 
 Located in `test/MakeABetMarket.t.sol`
 
-**Test Features:**
-- Unit tests for contract deployment
-- Room creation and validation tests
-- PYUSD token functionality tests
-- Fuzz testing examples
-- Event emission verification
+**Example Solidity Test:**
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test, console} from "forge-std/Test.sol";
+import {MakeABetMarket} from "../contracts/MakeABetMarket.sol";
+
+contract MakeABetMarketTest is Test {
+    MakeABetMarket public market;
+    
+    function setUp() public {
+        market = new MakeABetMarket(address(0x1)); // Mock Pyth
+    }
+    
+    function test_Deployment() public view {
+        assertEq(market.admin(), address(this));
+        console.log("Market deployed at:", address(market));
+    }
+    
+    function test_CreateRoom() public {
+        vm.expectEmit(true, false, false, true);
+        emit MakeABetMarket.RoomCreated(0, "Question", bytes32(0), 0);
+        
+        market.createRoom("Question", bytes32(0), uint64(block.timestamp + 1 days));
+    }
+    
+    function testFuzz_CreateRoom(string memory question, uint64 timeOffset) public {
+        vm.assume(timeOffset > 0 && timeOffset < 365 days);
+        market.createRoom(question, bytes32(0), uint64(block.timestamp + timeOffset));
+    }
+}
+```
+
+**Test Features Demonstrated:**
+- ✅ **setUp()** - Test initialization before each test
+- ✅ **Cheatcodes** - vm.deal, vm.prank, vm.expectRevert, vm.expectEmit
+- ✅ **Assertions** - assertEq, assertTrue, assertFalse
+- ✅ **Fuzz Testing** - testFuzz_* functions with random inputs
+- ✅ **Event Testing** - vm.expectEmit for event verification
+- ✅ **Console Logging** - console.log for debugging
+- ✅ **Gas Profiling** - gasleft() for gas optimization tests
+
+**Why Solidity Tests Matter:**
+
+Hardhat 3 includes `forge-std` support, allowing you to write tests in Solidity that:
+- Run faster than JavaScript tests (no JS/EVM bridge overhead)
+- Provide better type safety at compile time
+- Enable property-based testing with fuzz tests
+- Offer more accurate gas measurements
+- Are familiar to developers coming from Foundry
+
+### Running Tests
+
+```bash
+# Run all tests (TypeScript tests)
+pnpm test
+
+# Run tests with coverage
+pnpm coverage
+
+# Run tests with gas reporting
+REPORT_GAS=true pnpm test
+```
+
+**Note on Solidity Tests:**
+
+The `.t.sol` file in this project demonstrates Hardhat 3's compatibility with Forge-style test syntax. While Hardhat 3 includes `forge-std` as a dependency and supports the syntax, the tests are primarily provided as:
+
+1. **Reference Examples** - Show how to write Solidity tests with Hardhat 3
+2. **Documentation** - Demonstrate testing patterns for hackathon participants
+3. **Foundry Migration Path** - Easy to port to Foundry if needed
+
+The TypeScript tests provide comprehensive coverage and are the primary test suite. The Solidity tests serve as examples of Hardhat 3's expanded capabilities and compatibility with the broader Ethereum testing ecosystem.
 
 ## 🚀 Deployment
 
@@ -169,6 +249,15 @@ This contracts package demonstrates features for multiple ETHGlobal prizes:
 - Demonstrates TypeScript tests
 - Uses latest ethers v6 integration
 - Showcases advanced compilation options
+
+**Key Hardhat 3 Benefits:**
+
+1. **Performance**: Rust-based components provide 2-3x faster compilation
+2. **Developer Experience**: Improved error messages and stack traces
+3. **Flexibility**: Support for both TypeScript and Solidity tests
+4. **Modern Tooling**: ethers v6, TypeScript 5, and latest Solidity versions
+5. **Multichain**: Built-in support for multiple EVM chains and L2s
+6. **Optimization**: IR-based compilation for better gas efficiency
 
 ### PayPal USD Integration ✅
 

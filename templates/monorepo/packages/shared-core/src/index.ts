@@ -32,3 +32,25 @@ export const ConfigSchema = z.object({
 export type AppConfig = z.infer<typeof ConfigSchema>;
 
 export const DEFAULT_SETTLEMENT_BUFFER_SECONDS = 300;
+
+// Faucet types
+export interface FaucetResponse {
+  ok: boolean;
+  transactions?: string[];
+  error?: string;
+}
+
+// Config response types
+export interface ConfigResponse {
+  paypalClientId: string;
+  pythEndpoint: string;
+  targetChain: string;
+  chainType: 'evm' | 'solana';
+  pyusdAddress?: string;
+  pyusdMint?: string;
+  rpcUrl: string;
+  localChainEnabled: boolean;
+  faucetAvailable: boolean;
+  explorerUrl?: string;
+  marketAddress?: string;
+}

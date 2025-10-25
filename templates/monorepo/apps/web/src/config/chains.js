@@ -5,12 +5,12 @@ export const CHAIN_METADATA = {
         chainType: 'evm',
         nativeSymbol: 'ETH',
         stableSymbol: 'PYUSD',
-        chainId: '31337',
-        rpcUrl: 'http://127.0.0.1:8545',
-        explorerUrl: 'http://127.0.0.1:8545',
-        blockExplorerAddressTemplate: '',
-        pyusdAddress: '',
-        faucetUrl: '',
+        chainId: import.meta.env.VITE_LOCAL_CHAIN_ID || '31337',
+        rpcUrl: import.meta.env.VITE_LOCAL_RPC_URL || 'http://127.0.0.1:8545',
+        explorerUrl: undefined,
+        blockExplorerAddressTemplate: undefined,
+        pyusdAddress: import.meta.env.VITE_LOCAL_PYUSD_ADDRESS || '',
+        faucetUrl: undefined,
     },
     sepolia: {
         key: 'sepolia',
@@ -54,4 +54,25 @@ export const CHAIN_METADATA = {
 export const DEFAULT_CHAIN_KEY = import.meta.env.VITE_CHAIN_DEFAULT ?? 'sepolia';
 export function getChainMetadata(chainKey) {
     return CHAIN_METADATA[chainKey] ?? CHAIN_METADATA.sepolia;
+}
+/**
+ * Helper function to generate block explorer URLs for addresses and transactions
+ * @param chainKey - The chain to generate the URL for
+ * @param type - Type of URL to generate ('address' or 'tx')
+ * @param value - The address or transaction hash
+ * @returns The explorer URL or null if not available
+ */
+export function getExplorerUrl(chainKey, type, value) {
+    const chain = CHAIN_METADATA[chainKey];
+    // Local chain has no block explorer
+    if (chainKey === 'local-hardhat') {
+        return null;
+    }
+    if (type === 'address' && chain.blockExplorerAddressTemplate) {
+        return chain.blockExplorerAddressTemplate.replace('{address}', value);
+    }
+    if (type === 'tx' && chain.explorerUrl) {
+        return `${chain.explorerUrl}/tx/${value}`;
+    }
+    return null;
 }

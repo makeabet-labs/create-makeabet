@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ethers } from 'ethers';
+import { ConfigResponse } from '@makeabet/shared-core';
 
 const faucetAbi = ['function transfer(address to,uint256 amount) returns (bool)'];
 
@@ -9,8 +10,10 @@ type ChainType = 'evm' | 'solana';
 export async function registerRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({ status: 'ok' }));
 
-  app.get('/config', async () => {
+  app.get('/config', async (): Promise<ConfigResponse> => {
     const chainType = (process.env.CHAIN_TYPE ?? 'evm') as ChainType;
+    const localChainEnabled = (process.env.LOCAL_CHAIN_ENABLED ?? 'false') === 'true';
+    
     return {
       paypalClientId: process.env.PAYPAL_CLIENT_ID ?? '',
       pythEndpoint: process.env.PYTH_PRICE_SERVICE_URL ?? '',
@@ -22,6 +25,10 @@ export async function registerRoutes(app: FastifyInstance) {
         chainType === 'evm'
           ? process.env.EVM_RPC_URL ?? ''
           : process.env.SOLANA_RPC_URL ?? '',
+      localChainEnabled,
+      faucetAvailable: localChainEnabled,
+      explorerUrl: process.env.BLOCK_EXPLORER_URL,
+      marketAddress: process.env.MARKET_CONTRACT_ADDRESS,
     };
   });
 
@@ -33,12 +40,32 @@ export async function registerRoutes(app: FastifyInstance) {
         .refine((value) => ethers.isAddress(value), { message: 'Invalid address' }),
     });
 
+    // Rate limiter: Map of address -> last request timestamp
+    const faucetRateLimiter = new Map<string, number>();
+    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
     app.post('/faucet', async (request, reply) => {
       const parsed = faucetSchema.safeParse(request.body ?? {});
       if (!parsed.success) {
         reply.code(400);
         const message = parsed.error.issues?.[0]?.message ?? 'Invalid request';
         return { ok: false, error: message };
+      }
+
+      const { address } = parsed.data;
+
+      // Check rate limiting
+      const lastRequest = faucetRateLimiter.get(address);
+      if (lastRequest) {
+        const elapsed = Date.now() - lastRequest;
+        if (elapsed < COOLDOWN_MS) {
+          const remainingSeconds = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
+          reply.code(429);
+          return { 
+            ok: false, 
+            error: `Please wait ${remainingSeconds} seconds before requesting again` 
+          };
+        }
       }
 
       const providerUrl = process.env.LOCAL_RPC_URL ?? 'http://127.0.0.1:8545';
@@ -49,35 +76,71 @@ export async function registerRoutes(app: FastifyInstance) {
       const privateKey = process.env.LOCAL_FAUCET_PRIVATE_KEY ?? defaultHardhatKey;
 
       const wallet = new ethers.Wallet(privateKey, provider);
-      const recipient = parsed.data.address;
+      const recipient = address;
 
       try {
         const receipts: string[] = [];
-
         const ethAmount = ethers.parseEther(process.env.LOCAL_FAUCET_ETH_AMOUNT ?? '1');
-        const ethTx = await wallet.sendTransaction({ to: recipient, value: ethAmount });
-        receipts.push(ethTx.hash);
-
         const pyusdAddress = process.env.LOCAL_PYUSD_ADDRESS ?? process.env.PYUSD_CONTRACT_ADDRESS;
-        if (pyusdAddress) {
-          const erc20 = new ethers.Contract(pyusdAddress, faucetAbi, wallet);
-          const pyusdAmount = ethers.parseUnits(process.env.LOCAL_FAUCET_PYUSD_AMOUNT ?? '100', 6);
-          const tokenTx = await erc20.transfer(recipient, pyusdAmount);
-          receipts.push(tokenTx.hash);
+
+        app.log.info({ address, ethAmount: ethAmount.toString() }, 'Processing faucet request');
+
+        // Send ETH
+        try {
+          const ethTx = await wallet.sendTransaction({ to: recipient, value: ethAmount });
+          receipts.push(ethTx.hash);
+          app.log.info({ hash: ethTx.hash, amount: ethAmount.toString() }, 'ETH transfer sent');
+        } catch (error) {
+          app.log.error({ err: error, address }, 'ETH transfer failed');
+          throw error;
         }
 
+        // Send PYUSD if configured
+        if (pyusdAddress) {
+          try {
+            const erc20 = new ethers.Contract(pyusdAddress, faucetAbi, wallet);
+            const pyusdAmount = ethers.parseUnits(process.env.LOCAL_FAUCET_PYUSD_AMOUNT ?? '100', 6);
+            const tokenTx = await erc20.transfer(recipient, pyusdAmount);
+            receipts.push(tokenTx.hash);
+            app.log.info({ hash: tokenTx.hash, amount: pyusdAmount.toString() }, 'PYUSD transfer sent');
+          } catch (error) {
+            app.log.error({ err: error, address, pyusdAddress }, 'PYUSD transfer failed');
+            throw error;
+          }
+        }
+
+        // Wait for all transactions to be mined
         await Promise.all(receipts.map((hash) => provider.waitForTransaction(hash)));
+        app.log.info({ address, transactions: receipts }, 'Faucet request completed successfully');
+
+        // Update rate limiter on success
+        faucetRateLimiter.set(address, Date.now());
 
         return { ok: true, transactions: receipts };
       } catch (error) {
-        app.log.error({ err: error }, 'local faucet failed');
+        app.log.error({ err: error, address }, 'Faucet request failed');
         reply.code(500);
-        const message =
-          error instanceof Error && error.message.toLowerCase().includes('nonce')
-            ? 'Local faucet busy, please retry in a few seconds.'
-            : error instanceof Error
-              ? error.message
-              : 'Unexpected faucet error';
+
+        // Provide specific error messages for common failures
+        let message = 'Unexpected faucet error';
+        
+        if (error instanceof Error) {
+          const errorMsg = error.message.toLowerCase();
+          
+          if (errorMsg.includes('nonce')) {
+            message = 'Faucet is busy processing another request. Please retry in a few seconds.';
+          } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('insufficient balance')) {
+            message = 'Faucet has insufficient funds. Please contact the administrator.';
+            app.log.error({ address }, 'CRITICAL: Faucet wallet has insufficient funds');
+          } else if (errorMsg.includes('network') || errorMsg.includes('connection')) {
+            message = 'Network connection error. Please check if the local chain is running.';
+          } else if (errorMsg.includes('gas')) {
+            message = 'Gas estimation failed. Please ensure the local chain is running correctly.';
+          } else {
+            message = error.message;
+          }
+        }
+
         return { ok: false, error: message };
       }
     });

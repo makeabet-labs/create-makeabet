@@ -21,12 +21,33 @@ export function ChainProvider({ children }) {
             setChainKey(key);
         }
     };
+    const isLocalChain = useMemo(() => chainKey === 'local-hardhat', [chainKey]);
+    const isFaucetAvailable = useMemo(() => {
+        return isLocalChain && import.meta.env.VITE_LOCAL_CHAIN_ENABLED === 'true';
+    }, [isLocalChain]);
+    const getExplorerUrl = (type, value) => {
+        const chain = CHAIN_METADATA[chainKey];
+        // Local chain has no block explorer
+        if (chainKey === 'local-hardhat') {
+            return null;
+        }
+        if (type === 'address' && chain.blockExplorerAddressTemplate) {
+            return chain.blockExplorerAddressTemplate.replace('{address}', value);
+        }
+        if (type === 'tx' && chain.explorerUrl) {
+            return `${chain.explorerUrl}/tx/${value}`;
+        }
+        return null;
+    };
     const value = useMemo(() => ({
         chainKey,
         chain: CHAIN_METADATA[chainKey],
         setChain,
         availableChains: Object.values(CHAIN_METADATA),
-    }), [chainKey]);
+        isLocalChain,
+        isFaucetAvailable,
+        getExplorerUrl,
+    }), [chainKey, isLocalChain, isFaucetAvailable]);
     return _jsx(ChainContext.Provider, { value: value, children: children });
 }
 export function useChain() {

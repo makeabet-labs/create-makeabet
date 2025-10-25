@@ -15,8 +15,24 @@
       "installCommand": "pnpm install --frozen-lockfile",
       "env": {
         "DATABASE_URL": "${{postgres.DATABASE_URL}}",
+        "POSTGRES_URL": "${{postgres.DATABASE_URL}}",
         "REDIS_URL": "${{redis.REDIS_URL}}",
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "PAYPAL_CLIENT_ID": "${{PAYPAL_CLIENT_ID}}",
+        "PAYPAL_CLIENT_SECRET": "${{PAYPAL_CLIENT_SECRET}}",
+        "PYTH_PRICE_SERVICE_URL": "${{PYTH_PRICE_SERVICE_URL}}",
+        "PYTH_FEED_ID": "${{PYTH_FEED_ID}}",
+        "TARGET_CHAIN": "${{TARGET_CHAIN}}",
+        "CHAIN_TYPE": "${{CHAIN_TYPE}}",
+        "EVM_CHAIN_ID": "${{EVM_CHAIN_ID}}",
+        "EVM_RPC_URL": "${{EVM_RPC_URL}}",
+        "SOLANA_RPC_URL": "${{SOLANA_RPC_URL}}",
+        "PYUSD_CONTRACT_ADDRESS": "${{PYUSD_CONTRACT_ADDRESS}}",
+        "PYUSD_MINT_ADDRESS": "${{PYUSD_MINT_ADDRESS}}",
+        "MARKET_CONTRACT_ADDRESS": "${{MARKET_CONTRACT_ADDRESS}}",
+        "WALLETCONNECT_PROJECT_ID": "${{WALLETCONNECT_PROJECT_ID}}",
+        "LOCAL_CHAIN_ENABLED": "false",
+        "ENABLE_MERCHANT_PORTAL": "${{ENABLE_MERCHANT_PORTAL}}"
       }
     },
     {
@@ -25,8 +41,20 @@
       "installCommand": "pnpm install --frozen-lockfile",
       "env": {
         "DATABASE_URL": "${{postgres.DATABASE_URL}}",
+        "POSTGRES_URL": "${{postgres.DATABASE_URL}}",
         "REDIS_URL": "${{redis.REDIS_URL}}",
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "PYTH_PRICE_SERVICE_URL": "${{PYTH_PRICE_SERVICE_URL}}",
+        "PYTH_FEED_ID": "${{PYTH_FEED_ID}}",
+        "TARGET_CHAIN": "${{TARGET_CHAIN}}",
+        "CHAIN_TYPE": "${{CHAIN_TYPE}}",
+        "EVM_CHAIN_ID": "${{EVM_CHAIN_ID}}",
+        "EVM_RPC_URL": "${{EVM_RPC_URL}}",
+        "SOLANA_RPC_URL": "${{SOLANA_RPC_URL}}",
+        "PYUSD_CONTRACT_ADDRESS": "${{PYUSD_CONTRACT_ADDRESS}}",
+        "PYUSD_MINT_ADDRESS": "${{PYUSD_MINT_ADDRESS}}",
+        "MARKET_CONTRACT_ADDRESS": "${{MARKET_CONTRACT_ADDRESS}}",
+        "LOCAL_CHAIN_ENABLED": "false"
       }
     }
   ]

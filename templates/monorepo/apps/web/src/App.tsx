@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Tabs } from '@mantine/core';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -9,6 +9,8 @@ import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { BettingExperience } from './components/BettingExperience';
+import { ChainSwitcher } from './components/ChainSwitcher';
+import { WalletSummary } from './components/WalletSummary';
 
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
@@ -239,6 +241,8 @@ export function App() {
             </div>
           </header>
 
+          <WalletSummary />
+
           <section className="card">
             <h2>環境設定</h2>
             <dl>
@@ -361,40 +365,6 @@ export function App() {
       '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID'
     );
   }
-}
-
-function ChainSwitcher() {
-  const { chainKey, availableChains, setChain } = useChain();
-
-  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setChain(event.target.value as typeof chainKey);
-  };
-
-  return (
-    <label className="chain-switcher">
-      <span className="chain-switcher__label">Chain</span>
-      <div className="chain-switcher__control">
-        <span>{availableChains.find((item) => item.key === chainKey)?.name ?? chainKey}</span>
-        <select value={chainKey} onChange={handleChange} aria-label="Select chain">
-          {availableChains.map((chain) => (
-            <option key={chain.key} value={chain.key}>
-              {chain.name}
-            </option>
-          ))}
-        </select>
-        <svg viewBox="0 0 20 20" className="chain-switcher__icon" aria-hidden="true">
-          <path
-            d="M5.25 7.5 10 12.5l4.75-5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    </label>
-  );
 }
 
 function ConnectWallet({ chainType }: { chainType: ChainType }) {

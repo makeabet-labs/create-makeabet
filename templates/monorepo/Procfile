@@ -1,2 +1,5 @@
+# Railway Procfile - defines process types for deployment
+# web: API server (Fastify) - handles HTTP requests
 web: pnpm --filter @makeabet/api start
+# worker: Background worker (BullMQ) - processes jobs and updates
 worker: pnpm --filter @makeabet/worker start

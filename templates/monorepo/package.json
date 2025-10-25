@@ -9,10 +9,12 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:integration": "node scripts/test-integration.mjs",
     "format": "prettier --write .",
     "chain": "pnpm --filter @makeabet/contracts exec -- hardhat node --hostname 0.0.0.0",
     "deploy:local": "pnpm --filter @makeabet/contracts exec -- hardhat run scripts/deploy-local.ts --network localhost",
-    "sync:local-env": "node scripts/sync-local-env.mjs"
+    "sync:local-env": "node scripts/sync-local-env.mjs",
+    "test:railway": "node scripts/test-railway-deployment.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
