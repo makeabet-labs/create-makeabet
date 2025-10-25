@@ -16,9 +16,9 @@
     "settleRoom": "hardhat run scripts/settleRoom.ts --network sepolia"
   },
   "dependencies": {
-    "@nomicfoundation/hardhat-ethers": "^3.0.0",
-    "@nomicfoundation/hardhat-verify": "^2.0.1",
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-verify": "^2.0.11",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@pythnetwork/pyth-evm-js": "^1.14.0",
     "@pythnetwork/pyth-sdk-solidity": "^4.2.0",
     "@typechain/ethers-v6": "^0.5.1",
@@ -26,12 +26,13 @@
     "@types/node": "^20.11.32",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
-    "hardhat": "^2.22.6"
+    "hardhat": "^3.0.0"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@typechain/hardhat": "^9.1.0",
     "chai": "^4.4.1",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "solhint": "^6.0.1",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2"
