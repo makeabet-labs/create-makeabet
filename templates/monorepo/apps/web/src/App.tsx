@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Tabs } from '@mantine/core';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -8,13 +8,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ChainSwitcher } from './components/ChainSwitcher';
 import { WalletSummary } from './components/WalletSummary';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
-
-// Lazy load heavy components
-const BettingExperience = lazy(() =>
-  import('./components/BettingExperience').then((module) => ({
-    default: module.BettingExperience,
-  }))
-);
+import { PythPriceFeeds } from './components/PythPriceFeeds';
 
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
@@ -252,15 +246,21 @@ export function App() {
       </Tabs.Panel>
 
       <Tabs.Panel value="scaffold" className="app-tabs__panel">
-        <Suspense fallback={<div className="loading-fallback">Loading...</div>}>
-          <BettingExperience
-            chainName={chain.name}
-            chainSwitcher={<ChainSwitcher />}
-            connectWallet={<ConnectButton chainStatus="icon" showBalance={false} />}
-            displayedWallet={displayedWallet}
-            formattedWallet={formattedWallet}
-          />
-        </Suspense>
+        <div className="dashboard">
+          <header className="dashboard-header">
+            <div className="dashboard-header__meta">
+              <h1>MakeABet App</h1>
+              <p>Real-time price feeds powered by Pyth Network</p>
+            </div>
+            <div className="dashboard-header__actions">
+              <LanguageSwitcher />
+              <ChainSwitcher />
+              <ConnectButton chainStatus="icon" showBalance={false} />
+            </div>
+          </header>
+
+          <PythPriceFeeds />
+        </div>
       </Tabs.Panel>
     </Tabs>
   );
