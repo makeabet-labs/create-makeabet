@@ -1,11 +1,11 @@
-import { arbitrumSepolia, sepolia } from 'wagmi/chains';
+// EVM-only chain configuration
 
-export type ChainKey = 'local-hardhat' | 'sepolia' | 'arbitrum-sepolia' | 'solana-devnet';
+export type ChainKey = 'local-hardhat' | 'sepolia' | 'arbitrum-sepolia';
 
 export interface ChainMetadata {
   key: ChainKey;
   name: string;
-  chainType: 'evm' | 'solana';
+  chainType: 'evm';
   nativeSymbol: string;
   stableSymbol: string;
   chainId?: string;
@@ -13,7 +13,6 @@ export interface ChainMetadata {
   explorerUrl?: string;
   blockExplorerAddressTemplate?: string;
   pyusdAddress?: string;
-  pyusdMint?: string;
   faucetUrl?: string;
 }
 
@@ -56,18 +55,6 @@ export const CHAIN_METADATA: Record<ChainKey, ChainMetadata> = {
     blockExplorerAddressTemplate: 'https://sepolia.arbiscan.io/address/{address}',
     pyusdAddress: '0xc6006A919685EA081697613373C50B6b46cd6F11',
     faucetUrl: 'https://faucet.quicknode.com/arbitrum/sepolia',
-  },
-  'solana-devnet': {
-    key: 'solana-devnet',
-    name: 'Solana Devnet',
-    chainType: 'solana',
-    nativeSymbol: 'SOL',
-    stableSymbol: 'PYUSD',
-    rpcUrl: 'https://api.devnet.solana.com',
-    explorerUrl: 'https://explorer.solana.com',
-    blockExplorerAddressTemplate: 'https://explorer.solana.com/address/{address}?cluster=devnet',
-    pyusdMint: 'CXk2AMBfi3TwaEL2468s6zP8xq9NxTXjp9gjMgzeUynM',
-    faucetUrl: 'https://faucet.solana.com/',
   },
 };
 

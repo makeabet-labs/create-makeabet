@@ -1,6 +1,5 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Buffer } from 'buffer';
 import {
   Outlet,
   RouterProvider,
@@ -48,10 +47,6 @@ declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
   }
-}
-
-if (typeof window !== 'undefined' && !(window as any).Buffer) {
-  (window as any).Buffer = Buffer;
 }
 
 createRoot(document.getElementById('root') as HTMLElement).render(

@@ -16,6 +16,8 @@
     "test": "turbo run test",
     "test:integration": "node scripts/test-integration.mjs",
     "format": "prettier --write .",
+    "clean": "rm -rf .turbo apps/web/node_modules/.vite apps/web/dist apps/api/dist apps/worker/dist",
+    "clean:all": "rm -rf node_modules apps/*/node_modules .turbo apps/*/dist apps/web/node_modules/.vite",
     "chain": "pnpm --filter @makeabet/contracts exec -- hardhat node --hostname 0.0.0.0",
     "deploy:local": "pnpm --filter @makeabet/contracts exec -- hardhat run scripts/deploy-local.ts --network localhost",
     "sync:local-env": "node scripts/sync-local-env.mjs",

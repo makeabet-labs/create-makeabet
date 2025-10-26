@@ -15,7 +15,6 @@ const CHAIN_ICONS: Record<ChainKey, string> = {
   'local-hardhat': '🔧',
   'sepolia': '🔷',
   'arbitrum-sepolia': '🔵',
-  'solana-devnet': '🟣',
 };
 
 export function ChainSwitcher({ size = 'md' }: ChainSwitcherProps) {
@@ -171,7 +170,7 @@ export function ChainSwitcher({ size = 'md' }: ChainSwitcherProps) {
                   {availableChain.name}
                 </Text>
                 <Text size="xs" c="dimmed" style={{ lineHeight: 1.3 }}>
-                  {availableChain.chainType === 'evm' ? 'EVM' : 'Solana'}
+                  EVM
                   {availableChain.key === 'local-hardhat' && !isLocalChainAvailable && ' • Not Running'}
                 </Text>
               </Stack>

@@ -1,6 +1,5 @@
 import { useAccount } from 'wagmi';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { Card, Group, Text, Stack, Skeleton, ActionIcon, Tooltip, Anchor } from '@mantine/core';
+import { Card, Group, Text, Stack, Skeleton, ActionIcon, Tooltip } from '@mantine/core';
 import { IconCopy, IconExternalLink } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useChain } from '../providers/ChainProvider';
@@ -49,14 +48,8 @@ export function WalletSummary({
 }: WalletSummaryProps) {
   const { chain, getExplorerUrl, isFaucetAvailable } = useChain();
   
-  // Get wallet address based on chain type
-  const { address: evmAddress, isConnected: evmConnected } = useAccount();
-  const { publicKey: solanaPublicKey } = useWallet();
-  
-  const isConnected = chain.chainType === 'evm' ? evmConnected : Boolean(solanaPublicKey);
-  const walletAddress = chain.chainType === 'evm' 
-    ? evmAddress 
-    : solanaPublicKey?.toBase58();
+  // Get wallet address (EVM only)
+  const { address: walletAddress, isConnected } = useAccount();
 
   // Fetch balances
   const nativeBalance = useNativeBalance();

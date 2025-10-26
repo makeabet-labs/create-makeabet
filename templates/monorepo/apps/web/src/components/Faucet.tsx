@@ -10,6 +10,12 @@ interface FaucetResponse {
   error?: string;
 }
 
+interface FaucetError {
+  type: 'rate_limit' | 'validation' | 'network' | 'server' | 'unknown';
+  message: string;
+  cooldownSeconds?: number;
+}
+
 interface FaucetProps {
   address: string;
   onSuccess?: (txHashes: string[]) => void;
@@ -20,23 +26,87 @@ const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const STORAGE_KEY = 'makeabet:faucet:lastRequest';
 
 /**
+ * Parses error response and categorizes it
+ */
+function parseError(status: number, errorMessage: string): FaucetError {
+  // Rate limit error (429)
+  if (status === 429) {
+    const match = errorMessage.match(/wait (\d+) seconds/i);
+    const cooldownSeconds = match ? parseInt(match[1], 10) : undefined;
+    return {
+      type: 'rate_limit',
+      message: errorMessage,
+      cooldownSeconds,
+    };
+  }
+
+  // Validation error (400)
+  if (status === 400) {
+    return {
+      type: 'validation',
+      message: errorMessage || 'Invalid wallet address',
+    };
+  }
+
+  // Server error (500)
+  if (status === 500) {
+    return {
+      type: 'server',
+      message: errorMessage || 'Faucet service error. Please try again later.',
+    };
+  }
+
+  // Network/connection errors
+  const lowerMsg = errorMessage.toLowerCase();
+  if (lowerMsg.includes('network') || lowerMsg.includes('connection') || lowerMsg.includes('fetch')) {
+    return {
+      type: 'network',
+      message: 'Unable to connect to faucet service. Please ensure the API server is running.',
+    };
+  }
+
+  // Unknown error
+  return {
+    type: 'unknown',
+    message: errorMessage || 'An unexpected error occurred',
+  };
+}
+
+/**
  * Requests test tokens from the local faucet
  */
 async function requestFaucet(address: string): Promise<FaucetResponse> {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
   
-  const response = await fetch(`${apiUrl}/faucet`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address }),
-  });
+  try {
+    const response = await fetch(`${apiUrl}/api/faucet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address }),
+    });
 
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({ ok: false, error: 'Network error' }));
-    throw new Error(data.error || `HTTP ${response.status}`);
+    const data = await response.json().catch(() => ({ ok: false, error: 'Invalid response from server' }));
+
+    if (!response.ok) {
+      const error = parseError(response.status, data.error || `HTTP ${response.status}`);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    // Handle network errors (fetch failures)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw parseError(0, 'Network error: Unable to reach faucet service');
+    }
+    
+    // Re-throw if already a FaucetError
+    if (error && typeof error === 'object' && 'type' in error) {
+      throw error;
+    }
+    
+    // Wrap unknown errors
+    throw parseError(0, error instanceof Error ? error.message : 'Unknown error');
   }
-
-  return response.json();
 }
 
 /**
@@ -135,13 +205,54 @@ export function Faucet({ address, onSuccess, onError }: FaucetProps) {
         throw new Error(result.error || 'Unknown error');
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to request faucet';
+      let errorMessage = 'Failed to request faucet';
+      let notificationTitle = 'Faucet Failed';
+      let autoClose: number | false = 5000;
+
+      // Handle FaucetError with specific types
+      if (error && typeof error === 'object' && 'type' in error) {
+        const faucetError = error as FaucetError;
+        errorMessage = faucetError.message;
+
+        switch (faucetError.type) {
+          case 'rate_limit':
+            notificationTitle = 'Rate Limit Exceeded';
+            autoClose = false; // Don't auto-close rate limit errors
+            if (faucetError.cooldownSeconds) {
+              // Sync cooldown with server
+              setCooldownSeconds(faucetError.cooldownSeconds);
+              setLastRequestTime(address, Date.now() - (COOLDOWN_MS - faucetError.cooldownSeconds * 1000));
+            }
+            break;
+          
+          case 'validation':
+            notificationTitle = 'Invalid Request';
+            break;
+          
+          case 'network':
+            notificationTitle = 'Connection Error';
+            autoClose = 7000; // Give more time to read network errors
+            break;
+          
+          case 'server':
+            notificationTitle = 'Service Error';
+            autoClose = 7000;
+            break;
+          
+          case 'unknown':
+          default:
+            notificationTitle = 'Faucet Failed';
+            break;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       
       notifications.show({
-        title: 'Faucet Failed',
+        title: notificationTitle,
         message: errorMessage,
         color: 'red',
-        autoClose: 5000,
+        autoClose,
       });
 
       onError?.(errorMessage);

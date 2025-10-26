@@ -14,7 +14,7 @@ async function main() {
     '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
     provider
   );
-  
+
   const deployerAddress = await deployer.getAddress();
   const faucetAddress = await faucetSigner.getAddress();
 
@@ -32,11 +32,15 @@ async function main() {
     MockPYUSDArtifact.bytecode,
     deployer
   );
-  
+
   let nonce = await provider.getTransactionCount(deployerAddress);
-  const pyusd = await MockPYUSDFactory.deploy(deployerAddress, initialSupply, { nonce: nonce++ });
-  await pyusd.waitForDeployment();
-  console.log('MockPYUSD deployed to:', await pyusd.getAddress());
+  const pyusdDeployment = await MockPYUSDFactory.deploy(deployerAddress, initialSupply, { nonce: nonce++ });
+  await pyusdDeployment.waitForDeployment();
+  const pyusdAddress = await pyusdDeployment.getAddress();
+  console.log('MockPYUSD deployed to:', pyusdAddress);
+
+  // Get typed contract instance
+  const pyusd = new ethers.Contract(pyusdAddress, MockPYUSDArtifact.abi, deployer);
 
   // Deploy MakeABetMarket
   const pythPlaceholder = '0x0000000000000000000000000000000000000001';
@@ -74,7 +78,7 @@ async function main() {
 
   // Create deployment artifacts with timestamp and chainId
   const output = {
-    pyusd: await pyusd.getAddress(),
+    pyusd: pyusdAddress,
     market: await market.getAddress(),
     faucet: faucetAddress,
     timestamp: Date.now(),

@@ -90,6 +90,9 @@ export async function registerRoutes(app: FastifyInstance) {
           const ethTx = await wallet.sendTransaction({ to: recipient, value: ethAmount });
           receipts.push(ethTx.hash);
           app.log.info({ hash: ethTx.hash, amount: ethAmount.toString() }, 'ETH transfer sent');
+          // Wait for ETH transaction to be mined before sending PYUSD
+          await ethTx.wait();
+          app.log.info({ hash: ethTx.hash }, 'ETH transfer confirmed');
         } catch (error) {
           app.log.error({ err: error, address }, 'ETH transfer failed');
           throw error;
@@ -103,14 +106,15 @@ export async function registerRoutes(app: FastifyInstance) {
             const tokenTx = await erc20.transfer(recipient, pyusdAmount);
             receipts.push(tokenTx.hash);
             app.log.info({ hash: tokenTx.hash, amount: pyusdAmount.toString() }, 'PYUSD transfer sent');
+            // Wait for PYUSD transaction to be mined
+            await tokenTx.wait();
+            app.log.info({ hash: tokenTx.hash }, 'PYUSD transfer confirmed');
           } catch (error) {
             app.log.error({ err: error, address, pyusdAddress }, 'PYUSD transfer failed');
             throw error;
           }
         }
 
-        // Wait for all transactions to be mined
-        await Promise.all(receipts.map((hash) => provider.waitForTransaction(hash)));
         app.log.info({ address, transactions: receipts }, 'Faucet request completed successfully');
 
         // Update rate limiter on success
@@ -118,7 +122,11 @@ export async function registerRoutes(app: FastifyInstance) {
 
         return { ok: true, transactions: receipts };
       } catch (error) {
-        app.log.error({ err: error, address }, 'Faucet request failed');
+        app.log.error({ err: error, address, errorDetails: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error }, 'Faucet request failed');
         reply.code(500);
 
         // Provide specific error messages for common failures
@@ -126,6 +134,9 @@ export async function registerRoutes(app: FastifyInstance) {
         
         if (error instanceof Error) {
           const errorMsg = error.message.toLowerCase();
+          
+          // Log the full error message for debugging
+          app.log.error({ fullErrorMessage: error.message }, 'Full error details');
           
           if (errorMsg.includes('nonce')) {
             message = 'Faucet is busy processing another request. Please retry in a few seconds.';
