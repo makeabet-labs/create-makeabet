@@ -1,4 +1,4 @@
-export const supportedLocales = ['zh-TW', 'en'] as const;
+export const supportedLocales = ['en', 'zh-TW'] as const;
 
 export type Locale = (typeof supportedLocales)[number];
 
@@ -225,4 +225,4 @@ export const translations: Record<Locale, TranslationMap> = {
   },
 };
 
-export const fallbackLocale: Locale = 'zh-TW';
+export const fallbackLocale: Locale = 'en';

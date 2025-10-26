@@ -7,6 +7,9 @@ const faucetAbi = ['function transfer(address to,uint256 amount) returns (bool)'
 
 type ChainType = 'evm' | 'solana';
 
+// Mutex lock to prevent concurrent faucet requests
+let faucetProcessing = false;
+
 export async function registerRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({ status: 'ok' }));
 
@@ -54,6 +57,15 @@ export async function registerRoutes(app: FastifyInstance) {
 
       const { address } = parsed.data;
 
+      // Check if faucet is already processing a request
+      if (faucetProcessing) {
+        reply.code(429);
+        return {
+          ok: false,
+          error: 'Faucet is currently processing another request. Please wait a moment and try again.'
+        };
+      }
+
       // Check rate limiting
       const lastRequest = faucetRateLimiter.get(address);
       if (lastRequest) {
@@ -67,6 +79,9 @@ export async function registerRoutes(app: FastifyInstance) {
           };
         }
       }
+
+      // Set processing flag
+      faucetProcessing = true;
 
       const providerUrl = process.env.LOCAL_RPC_URL ?? 'http://127.0.0.1:8545';
       const provider = new ethers.JsonRpcProvider(providerUrl);
@@ -83,34 +98,46 @@ export async function registerRoutes(app: FastifyInstance) {
         const ethAmount = ethers.parseEther(process.env.LOCAL_FAUCET_ETH_AMOUNT ?? '1');
         const pyusdAddress = process.env.LOCAL_PYUSD_ADDRESS ?? process.env.PYUSD_CONTRACT_ADDRESS;
 
-        app.log.info({ address, ethAmount: ethAmount.toString() }, 'Processing faucet request');
+        // Get current nonce explicitly to avoid conflicts
+        let currentNonce = await provider.getTransactionCount(wallet.address, 'latest');
+        app.log.info({ 
+          address, 
+          ethAmount: ethAmount.toString(), 
+          faucetAddress: wallet.address,
+          startingNonce: currentNonce 
+        }, 'Processing faucet request');
 
-        // Send ETH
+        // Send ETH with explicit nonce
         try {
-          const ethTx = await wallet.sendTransaction({ to: recipient, value: ethAmount });
+          const ethTx = await wallet.sendTransaction({ 
+            to: recipient, 
+            value: ethAmount,
+            nonce: currentNonce
+          });
           receipts.push(ethTx.hash);
-          app.log.info({ hash: ethTx.hash, amount: ethAmount.toString() }, 'ETH transfer sent');
+          app.log.info({ hash: ethTx.hash, amount: ethAmount.toString(), nonce: currentNonce }, 'ETH transfer sent');
           // Wait for ETH transaction to be mined before sending PYUSD
           await ethTx.wait();
           app.log.info({ hash: ethTx.hash }, 'ETH transfer confirmed');
+          currentNonce++; // Increment for next transaction
         } catch (error) {
-          app.log.error({ err: error, address }, 'ETH transfer failed');
+          app.log.error({ err: error, address, nonce: currentNonce }, 'ETH transfer failed');
           throw error;
         }
 
-        // Send PYUSD if configured
+        // Send PYUSD if configured with explicit nonce
         if (pyusdAddress) {
           try {
             const erc20 = new ethers.Contract(pyusdAddress, faucetAbi, wallet);
             const pyusdAmount = ethers.parseUnits(process.env.LOCAL_FAUCET_PYUSD_AMOUNT ?? '100', 6);
-            const tokenTx = await erc20.transfer(recipient, pyusdAmount);
+            const tokenTx = await erc20.transfer(recipient, pyusdAmount, { nonce: currentNonce });
             receipts.push(tokenTx.hash);
-            app.log.info({ hash: tokenTx.hash, amount: pyusdAmount.toString() }, 'PYUSD transfer sent');
+            app.log.info({ hash: tokenTx.hash, amount: pyusdAmount.toString(), nonce: currentNonce }, 'PYUSD transfer sent');
             // Wait for PYUSD transaction to be mined
             await tokenTx.wait();
             app.log.info({ hash: tokenTx.hash }, 'PYUSD transfer confirmed');
           } catch (error) {
-            app.log.error({ err: error, address, pyusdAddress }, 'PYUSD transfer failed');
+            app.log.error({ err: error, address, pyusdAddress, nonce: currentNonce }, 'PYUSD transfer failed');
             throw error;
           }
         }
@@ -153,6 +180,9 @@ export async function registerRoutes(app: FastifyInstance) {
         }
 
         return { ok: false, error: message };
+      } finally {
+        // Always release the lock
+        faucetProcessing = false;
       }
     });
   }

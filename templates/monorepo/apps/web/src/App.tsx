@@ -7,6 +7,7 @@ import { erc20Abi, formatUnits } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ChainSwitcher } from './components/ChainSwitcher';
 import { WalletSummary } from './components/WalletSummary';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
 
 // Lazy load heavy components
 const BettingExperience = lazy(() =>
@@ -115,14 +116,14 @@ export function App() {
   });
 
   const formattedNativeBalance = useMemo(() => {
-    if (!isConnected || !address) return '尚未連線';
-    if (!nativeBalance) return '載入中';
+    if (!isConnected || !address) return 'Not connected';
+    if (!nativeBalance) return 'Loading';
     return Number(formatUnits(nativeBalance.value, nativeBalance.decimals)).toFixed(4);
   }, [address, isConnected, nativeBalance]);
 
   const formattedStableBalance = useMemo(() => {
-    if (!isConnected || !address) return '尚未連線';
-    if (!pyusdBalance) return '載入中';
+    if (!isConnected || !address) return 'Not connected';
+    if (!pyusdBalance) return 'Loading';
     return Number(formatUnits(pyusdBalance as bigint, pyusdDecimals)).toFixed(2);
   }, [address, isConnected, pyusdBalance]);
 
@@ -133,11 +134,11 @@ export function App() {
 
   const faucetMutation = useMutation({
     mutationFn: async () => {
-      if (!address) throw new Error('請先連線 EVM 錢包');
+      if (!address) throw new Error('Please connect your EVM wallet first');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const { data: response } = await axios.post<FaucetResponse>(`${apiUrl}/api/faucet`, { address });
       if (!response.ok) {
-        throw new Error(response.error ?? '請稍後重試');
+        throw new Error(response.error ?? 'Please try again later');
       }
       return response.transactions ?? [];
     },
@@ -147,7 +148,7 @@ export function App() {
   const formattedWallet = displayedWallet ? formatAddress(displayedWallet) : undefined;
 
   if (isLoading) {
-    return <p className="status">載入設定中...</p>;
+    return <p className="status">Loading configuration...</p>;
   }
 
   return (
@@ -173,6 +174,7 @@ export function App() {
               <p>Monitor balances, RPC endpoints, and local Hardhat automation.</p>
             </div>
             <div className="dashboard-header__actions">
+              <LanguageSwitcher />
               <ChainSwitcher />
               <ConnectButton chainStatus="icon" showBalance={false} />
             </div>
@@ -181,13 +183,13 @@ export function App() {
           <WalletSummary />
 
           <section className="card">
-            <h2>環境設定</h2>
+            <h2>Environment Configuration</h2>
             <dl>
               <dt>PayPal Client ID</dt>
-              <dd>{data?.paypalClientId || '尚未設定'}</dd>
+              <dd>{data?.paypalClientId || 'Not configured'}</dd>
               <dt>Pyth Hermes Endpoint</dt>
               <dd>{pythEndpoint}</dd>
-              <dt>目標鏈別</dt>
+              <dt>Target Chain</dt>
               <dd>{displayChainName}</dd>
               {displayChainId && (
                 <>
@@ -199,14 +201,14 @@ export function App() {
           </section>
 
           <section className="card">
-            <h2>鏈與錢包設定</h2>
+            <h2>Chain & Wallet Configuration</h2>
             <dl>
-              <dt>鏈類型</dt>
+              <dt>Chain Type</dt>
               <dd>EVM (RainbowKit + WalletConnect)</dd>
               <dt>PYUSD Contract Address</dt>
-              <dd>{displayPyusd || '未設定'}</dd>
+              <dd>{displayPyusd || 'Not configured'}</dd>
               <dt>EVM RPC</dt>
-              <dd>{displayRpc || '設定於 .env'}</dd>
+              <dd>{displayRpc || 'Configured in .env'}</dd>
               <dt>WalletConnect Project ID</dt>
               <dd>{walletConnectLabel()}</dd>
               {addressExplorerLink && (
@@ -214,7 +216,7 @@ export function App() {
                   <dt>Explorer</dt>
                   <dd>
                     <a href={addressExplorerLink} target="_blank" rel="noreferrer" className="link">
-                      查看地址
+                      View Address
                     </a>
                   </dd>
                 </>
@@ -223,7 +225,7 @@ export function App() {
           </section>
 
           <section className="card">
-            <h2>資產概覽</h2>
+            <h2>Asset Overview</h2>
             <dl>
               <dt>Native Asset</dt>
               <dd className="asset-row">
@@ -236,44 +238,21 @@ export function App() {
                 <span className="asset-value">{formattedStableBalance}</span>
               </dd>
             </dl>
-            {isLocalChain && (
-              <div className="faucet">
-                <button
-                  type="button"
-                  className="button"
-                  disabled={faucetMutation.isPending || !isConnected || !address}
-                  onClick={() => faucetMutation.mutate()}
-                >
-                  {faucetMutation.isPending ? '發送中...' : '領取本地測試資產'}
-                </button>
-                {faucetMutation.isSuccess && (
-                  <p className="status-success">
-                    已發送 1 ETH / 100 PYUSD
-                    {faucetMutation.data?.length ? ` (tx: ${faucetMutation.data[0]})` : ''}
-                  </p>
-                )}
-                {faucetMutation.isError && (
-                  <p className="status-error">
-                    {(faucetMutation.error as Error).message ?? '請稍後重試'}
-                  </p>
-                )}
-              </div>
-            )}
           </section>
 
           <section className="card">
-            <h2>下一步</h2>
+            <h2>Next Steps</h2>
             <ol>
-              <li>填入 PayPal Sandbox OAuth、PYUSD、Pyth、RPC 設定於 `.env`。</li>
-              <li>使用 Hardhat 部署合約並設定 Pyth Price Feed。</li>
-              <li>部署 API / Worker 至 Railway，前端至 Vercel 或 Railway Static。</li>
+              <li>Configure PayPal Sandbox OAuth, PYUSD, Pyth, and RPC settings in `.env`.</li>
+              <li>Deploy contracts with Hardhat and configure Pyth Price Feed.</li>
+              <li>Deploy API / Worker to Railway, and frontend to Vercel or Railway Static.</li>
             </ol>
           </section>
         </div>
       </Tabs.Panel>
 
       <Tabs.Panel value="scaffold" className="app-tabs__panel">
-        <Suspense fallback={<div className="loading-fallback">載入中...</div>}>
+        <Suspense fallback={<div className="loading-fallback">Loading...</div>}>
           <BettingExperience
             chainName={chain.name}
             chainSwitcher={<ChainSwitcher />}
@@ -289,7 +268,7 @@ export function App() {
   function walletConnectLabel() {
     return (
       import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ||
-      '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID'
+      'Set VITE_WALLETCONNECT_PROJECT_ID in apps/web/.env'
     );
   }
 }
