@@ -43,9 +43,9 @@ export async function registerRoutes(app: FastifyInstance) {
         .refine((value) => ethers.isAddress(value), { message: 'Invalid address' }),
     });
 
-    // Rate limiter: Map of address -> last request timestamp
-    const faucetRateLimiter = new Map<string, number>();
-    const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+    // Rate limiter disabled for local development
+    // const faucetRateLimiter = new Map<string, number>();
+    // const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
     app.post('/faucet', async (request, reply) => {
       const parsed = faucetSchema.safeParse(request.body ?? {});
@@ -66,19 +66,19 @@ export async function registerRoutes(app: FastifyInstance) {
         };
       }
 
-      // Check rate limiting
-      const lastRequest = faucetRateLimiter.get(address);
-      if (lastRequest) {
-        const elapsed = Date.now() - lastRequest;
-        if (elapsed < COOLDOWN_MS) {
-          const remainingSeconds = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
-          reply.code(429);
-          return { 
-            ok: false, 
-            error: `Please wait ${remainingSeconds} seconds before requesting again` 
-          };
-        }
-      }
+      // Rate limiting disabled for local development
+      // const lastRequest = faucetRateLimiter.get(address);
+      // if (lastRequest) {
+      //   const elapsed = Date.now() - lastRequest;
+      //   if (elapsed < COOLDOWN_MS) {
+      //     const remainingSeconds = Math.ceil((COOLDOWN_MS - elapsed) / 1000);
+      //     reply.code(429);
+      //     return { 
+      //       ok: false, 
+      //       error: `Please wait ${remainingSeconds} seconds before requesting again` 
+      //     };
+      //   }
+      // }
 
       // Set processing flag
       faucetProcessing = true;
@@ -144,8 +144,8 @@ export async function registerRoutes(app: FastifyInstance) {
 
         app.log.info({ address, transactions: receipts }, 'Faucet request completed successfully');
 
-        // Update rate limiter on success
-        faucetRateLimiter.set(address, Date.now());
+        // Rate limiter disabled for local development
+        // faucetRateLimiter.set(address, Date.now());
 
         return { ok: true, transactions: receipts };
       } catch (error) {

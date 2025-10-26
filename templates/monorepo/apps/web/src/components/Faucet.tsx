@@ -22,7 +22,8 @@ interface FaucetProps {
   onError?: (error: string) => void;
 }
 
-const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+// Cooldown disabled for local development
+const COOLDOWN_MS = 0; // No cooldown
 const STORAGE_KEY = 'makeabet:faucet:lastRequest';
 
 /**

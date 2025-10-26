@@ -14,6 +14,8 @@
   "dependencies": {
     "@makeabet/shared-core": "workspace:*",
     "@mantine/core": "^7.12.1",
+    "@mantine/dates": "7.15.1",
+    "@mantine/hooks": "7.17.8",
     "@mantine/notifications": "^7.12.1",
     "@rainbow-me/rainbowkit": "^2.2.1",
     "@solana/wallet-adapter-base": "^0.9.24",
@@ -29,6 +31,7 @@
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
     "date-fns": "^3.6.0",
+    "dayjs": "1.11.13",
     "i18next": "^23.10.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

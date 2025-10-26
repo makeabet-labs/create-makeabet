@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Card, Grid, Text, Stack, Badge, Group, Skeleton } from '@mantine/core';
-import { IconTrendingUp, IconTrendingDown, IconMinus } from '@tabler/icons-react';
+import { Card, Grid, Text, Stack, Badge, Group, Skeleton, Button } from '@mantine/core';
+import { IconTrendingUp, IconTrendingDown, IconMinus, IconPlus } from '@tabler/icons-react';
 
 // Pyth Price Feed IDs (from Hermes Stable)
 const PRICE_FEEDS = {
@@ -36,7 +36,11 @@ interface PriceFeedData {
   lastUpdate: Date;
 }
 
-export function PythPriceFeeds() {
+interface PythPriceFeedsProps {
+  onCreateMarket?: (symbol: string, currentPrice: number, feedId: string) => void;
+}
+
+export function PythPriceFeeds({ onCreateMarket }: PythPriceFeedsProps) {
   const [priceData, setPriceData] = useState<Map<string, PriceFeedData>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -196,6 +200,19 @@ export function PythPriceFeeds() {
                       <Text size="xs" c="dimmed">
                         Confidence: {formatConfidence(data.confidence)}
                       </Text>
+                      
+                      {onCreateMarket && (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<IconPlus size={14} />}
+                          onClick={() => onCreateMarket(symbol, data.price, PRICE_FEEDS[symbol as keyof typeof PRICE_FEEDS])}
+                          fullWidth
+                          mt="xs"
+                        >
+                          Create Market
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <Text size="sm" c="dimmed">

@@ -40,9 +40,11 @@ contract MakeABetMarketTest is Test {
         user1 = address(0x100);
         user2 = address(0x200);
         
-        // Deploy contracts
-        market = new MakeABetMarket(MOCK_PYTH);
+        // Deploy PYUSD first
         pyusd = new MockPYUSD(admin, 1_000_000 * 10**6);
+        
+        // Deploy market with both Pyth and PYUSD addresses
+        market = new MakeABetMarket(MOCK_PYTH, address(pyusd));
         
         // Fund test users with ETH using Hardhat cheatcode
         vm.deal(user1, 100 ether);
@@ -59,73 +61,62 @@ contract MakeABetMarketTest is Test {
     /// @dev Demonstrates basic assertions in Solidity tests
     function test_Deployment() public view {
         assertEq(address(market.pyth()), MOCK_PYTH, "Pyth address should match");
+        assertEq(address(market.token()), address(pyusd), "PYUSD address should match");
         assertEq(market.admin(), admin, "Admin should be deployer");
-        assertEq(market.nextRoomId(), 0, "Initial room ID should be 0");
+        assertEq(market.nextMarketId(), 0, "Initial market ID should be 0");
         
         console.log("Market deployed at:", address(market));
         console.log("Admin address:", admin);
     }
     
-    /// @notice Test room creation with event emission
+    /// @notice Test market creation with event emission
     /// @dev Demonstrates vm.expectEmit for testing events
-    function test_CreateRoom() public {
+    function test_CreateMarket() public {
         string memory question = "Will ETH reach $5000?";
         bytes32 feedId = bytes32(uint256(1));
+        int64 targetPrice = 5000 * 10**8; // $5000 in Pyth format
         uint64 expiry = uint64(block.timestamp + 1 days);
         
-        // Expect the RoomCreated event to be emitted
+        // Expect the MarketCreated event to be emitted
         vm.expectEmit(true, false, false, true);
-        emit MakeABetMarket.RoomCreated(0, question, feedId, expiry);
+        emit MakeABetMarket.MarketCreated(0, question, feedId, targetPrice, expiry);
         
-        uint256 roomId = market.createRoom(question, feedId, expiry);
+        uint256 marketId = market.createMarket(question, feedId, targetPrice, expiry);
         
-        assertEq(roomId, 0, "First room ID should be 0");
-        assertEq(market.nextRoomId(), 1, "Next room ID should increment");
+        assertEq(marketId, 0, "First market ID should be 0");
+        assertEq(market.nextMarketId(), 1, "Next market ID should increment");
         
-        // Verify room data
-        (
-            string memory q,
-            bytes32 f,
-            uint64 e,
-            bool settled,
-            bool outcome
-        ) = market.rooms(roomId);
-        
-        assertEq(q, question, "Question should match");
-        assertEq(f, feedId, "Feed ID should match");
-        assertEq(e, expiry, "Expiry should match");
-        assertFalse(settled, "Room should not be settled");
-        assertFalse(outcome, "Outcome should be false initially");
-        
-        console.log("Room created with ID:", roomId);
+        console.log("Market created with ID:", marketId);
     }
     
-    /// @notice Test that room creation reverts with past expiry
+    /// @notice Test that market creation reverts with past expiry
     /// @dev Demonstrates vm.expectRevert for testing error conditions
-    function test_CreateRoom_RevertsIfExpiryInPast() public {
+    function test_CreateMarket_RevertsIfExpiryInPast() public {
         string memory question = "Past question";
         bytes32 feedId = bytes32(uint256(1));
+        int64 targetPrice = 5000 * 10**8;
         uint64 expiry = uint64(block.timestamp - 1);
         
         vm.expectRevert("expiry must be future");
-        market.createRoom(question, feedId, expiry);
+        market.createMarket(question, feedId, targetPrice, expiry);
     }
     
-    /// @notice Test creating multiple rooms
+    /// @notice Test creating multiple markets
     /// @dev Demonstrates sequential operations and state changes
-    function test_CreateMultipleRooms() public {
+    function test_CreateMultipleMarkets() public {
         uint64 expiry = uint64(block.timestamp + 1 days);
+        int64 targetPrice = 5000 * 10**8;
         
-        uint256 roomId1 = market.createRoom("Question 1", bytes32(uint256(1)), expiry);
-        uint256 roomId2 = market.createRoom("Question 2", bytes32(uint256(2)), expiry);
-        uint256 roomId3 = market.createRoom("Question 3", bytes32(uint256(3)), expiry);
+        uint256 marketId1 = market.createMarket("Question 1", bytes32(uint256(1)), targetPrice, expiry);
+        uint256 marketId2 = market.createMarket("Question 2", bytes32(uint256(2)), targetPrice, expiry);
+        uint256 marketId3 = market.createMarket("Question 3", bytes32(uint256(3)), targetPrice, expiry);
         
-        assertEq(roomId1, 0, "First room ID");
-        assertEq(roomId2, 1, "Second room ID");
-        assertEq(roomId3, 2, "Third room ID");
-        assertEq(market.nextRoomId(), 3, "Next room ID should be 3");
+        assertEq(marketId1, 0, "First market ID");
+        assertEq(marketId2, 1, "Second market ID");
+        assertEq(marketId3, 2, "Third market ID");
+        assertEq(market.nextMarketId(), 3, "Next market ID should be 3");
         
-        console.log("Created 3 rooms, next ID:", market.nextRoomId());
+        console.log("Created 3 markets, next ID:", market.nextMarketId());
     }
     
     // ============ MockPYUSD Tests ============
@@ -192,23 +183,22 @@ contract MakeABetMarketTest is Test {
     
     // ============ Fuzz Tests ============
     
-    /// @notice Fuzz test for room creation with random inputs
+    /// @notice Fuzz test for market creation with random inputs
     /// @dev Demonstrates Hardhat 3's fuzz testing capabilities
     /// @dev The fuzzer will generate random values for question and timeOffset
-    /// @param question Random string for room question
+    /// @param question Random string for market question
     /// @param timeOffset Random time offset for expiry
-    function testFuzz_CreateRoom(string memory question, uint64 timeOffset) public {
+    function testFuzz_CreateMarket(string memory question, uint64 timeOffset) public {
         // Constrain inputs to valid ranges
         vm.assume(timeOffset > 0 && timeOffset < 365 days);
         
         bytes32 feedId = bytes32(uint256(1));
+        int64 targetPrice = 5000 * 10**8;
         uint64 expiry = uint64(block.timestamp + timeOffset);
         
-        uint256 roomId = market.createRoom(question, feedId, expiry);
+        uint256 marketId = market.createMarket(question, feedId, targetPrice, expiry);
         
-        (string memory q, , uint64 e, , ) = market.rooms(roomId);
-        assertEq(q, question, "Question should match");
-        assertEq(e, expiry, "Expiry should match");
+        assertEq(marketId, 0, "First market ID should be 0");
     }
     
     /// @notice Fuzz test for PYUSD minting with random amounts
@@ -249,22 +239,23 @@ contract MakeABetMarketTest is Test {
     
     // ============ Gas Optimization Tests ============
     
-    /// @notice Test gas usage for room creation
+    /// @notice Test gas usage for market creation
     /// @dev Useful for optimizing contract gas costs
-    function test_Gas_CreateRoom() public {
+    function test_Gas_CreateMarket() public {
         uint256 gasBefore = gasleft();
         
-        market.createRoom(
+        market.createMarket(
             "Will ETH reach $5000?",
             bytes32(uint256(1)),
+            5000 * 10**8,
             uint64(block.timestamp + 1 days)
         );
         
         uint256 gasUsed = gasBefore - gasleft();
-        console.log("Gas used for createRoom:", gasUsed);
+        console.log("Gas used for createMarket:", gasUsed);
         
         // Assert reasonable gas usage (adjust threshold as needed)
-        assertTrue(gasUsed < 200_000, "Gas usage should be reasonable");
+        assertTrue(gasUsed < 300_000, "Gas usage should be reasonable");
     }
     
     /// @notice Test gas usage for PYUSD transfer

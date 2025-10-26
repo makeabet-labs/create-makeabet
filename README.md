@@ -367,7 +367,7 @@ Deploy your project to production in minutes:
    ```
 
 6. **Verify Deployment**
-   - Check API health: `https://your-api.railway.app/health`
+   - Check API health: `https://your-api.railway.app/api/health`
    - Check worker logs in Railway dashboard
    - Test frontend connection to API
    - Verify database migrations ran successfully

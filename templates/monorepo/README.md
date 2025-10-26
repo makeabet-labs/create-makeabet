@@ -1,12 +1,42 @@
-# MakeABet Hackathon Scaffold
+# 🎯 MakeABet - 去中心化預測市場平台
 
-這個腳手架由 `create-makeabet` CLI 產生，預設整合硬體：
+基於 Pyth Network 的加密貨幣預測市場，讓用戶可以對價格走勢進行預測和下注。
 
-- **Hardhat 3**：部署與測試 PYUSD 預測市場合約，內建 Pyth pull oracle 與商家房間管理腳本。
-- **Fastify API + Worker**：`apps/api` 提供 PayPal/PYUSD/Pyth 相關的應用層 API，`apps/worker` 定時更新 Pyth 價格與結算。
-- **React 19 前端**：`apps/web` 展示下注流程、PayPal OAuth、商家後台入口。
-- **Redis + Postgres**：Docker Compose 預設服務，搭配 `Makefile` 指令啟動。
-- **Railway 部署範本**：`deploy/railway.json` 與 README 範例，支援一鍵建立雲端環境。
+## ✨ 核心功能
+
+- 🎲 **預測市場** - 創建和參與加密貨幣價格預測
+- 📊 **實時價格** - 整合 Pyth Network 價格預言機
+- 💰 **PYUSD 下注** - 使用 PYUSD 穩定幣進行交易
+- 🔗 **智能合約** - 去中心化的市場結算
+- 📱 **響應式 UI** - 專業的用戶界面
+
+## 🚀 一鍵啟動
+
+```bash
+pnpm dev
+```
+
+就這麼簡單！這個命令會：
+1. ✅ 啟動 Hardhat 本地節點
+2. ✅ 部署智能合約
+3. ✅ 啟動 API 和 Web 服務器
+
+然後打開 http://localhost:5173
+
+## 📚 文檔
+
+- **[快速開始](./QUICK_START.md)** - 最快的啟動方式
+- **[文檔中心](./docs/README.md)** - 完整的文檔導航
+- **[開發歷程](./docs/development-history/INDEX.md)** - 30+ 詳細文檔
+
+## 🛠️ 技術棧
+
+- **Hardhat 3**：智能合約開發和測試
+- **React 19**：現代化的前端框架
+- **Fastify API**：高性能後端服務
+- **Pyth Network**：實時價格預言機
+- **PYUSD**：PayPal 穩定幣整合
+- **RainbowKit**：錢包連接
 
 ## 環境需求
 

@@ -42,16 +42,17 @@ async function main() {
   // Get typed contract instance
   const pyusd = new ethers.Contract(pyusdAddress, MockPYUSDArtifact.abi, deployer);
 
-  // Deploy MakeABetMarket
+  // Deploy MakeABetMarket with Pyth and PYUSD addresses
   const pythPlaceholder = '0x0000000000000000000000000000000000000001';
   const MarketFactory = new ethers.ContractFactory(
     MarketArtifact.abi,
     MarketArtifact.bytecode,
     deployer
   );
-  const market = await MarketFactory.deploy(pythPlaceholder, { nonce: nonce++ });
+  const market = await MarketFactory.deploy(pythPlaceholder, pyusdAddress, { nonce: nonce++ });
   await market.waitForDeployment();
-  console.log('MakeABetMarket deployed to:', await market.getAddress());
+  const marketAddress = await market.getAddress();
+  console.log('MakeABetMarket deployed to:', marketAddress);
 
   // Seed faucet with 1000000 PYUSD (1M tokens with 6 decimals)
   const faucetPYUSDAmount = ethers.parseUnits('1000000', 6);
@@ -79,7 +80,7 @@ async function main() {
   // Create deployment artifacts with timestamp and chainId
   const output = {
     pyusd: pyusdAddress,
-    market: await market.getAddress(),
+    market: marketAddress,
     faucet: faucetAddress,
     timestamp: Date.now(),
     chainId: chainId,

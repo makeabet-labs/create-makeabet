@@ -5,10 +5,10 @@ import axios from 'axios';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { ChainSwitcher } from './components/ChainSwitcher';
 import { WalletSummary } from './components/WalletSummary';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { PythPriceFeeds } from './components/PythPriceFeeds';
+import { MarketList } from './components/MarketList';
 
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
@@ -41,6 +41,12 @@ export function App() {
   }, []);
 
   const { chain } = useChain();
+
+  const [createMarketData, setCreateMarketData] = useState<{
+    symbol: string;
+    currentPrice: number;
+    feedId: string;
+  } | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabValue>(() => {
     if (typeof window === 'undefined') {
@@ -169,8 +175,7 @@ export function App() {
             </div>
             <div className="dashboard-header__actions">
               <LanguageSwitcher />
-              <ChainSwitcher />
-              <ConnectButton chainStatus="icon" showBalance={false} />
+              <ConnectButton showBalance={false} />
             </div>
           </header>
 
@@ -235,6 +240,36 @@ export function App() {
           </section>
 
           <section className="card">
+            <h2>Testnet Faucets</h2>
+            <p style={{ marginBottom: '1rem', color: '#64748b' }}>
+              Get test PYUSD tokens for Sepolia testnet
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <a
+                href="https://faucet.paxos.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button"
+                style={{ textDecoration: 'none' }}
+              >
+                🚰 Paxos PYUSD Faucet
+              </a>
+              <a
+                href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia/pyusd"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button"
+                style={{ textDecoration: 'none' }}
+              >
+                🌐 Google Cloud PYUSD Faucet
+              </a>
+            </div>
+            <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#64748b' }}>
+              💡 Note: These faucets provide PYUSD on Sepolia testnet. Make sure your wallet is connected to Sepolia network.
+            </p>
+          </section>
+
+          <section className="card">
             <h2>Next Steps</h2>
             <ol>
               <li>Configure PayPal Sandbox OAuth, PYUSD, Pyth, and RPC settings in `.env`.</li>
@@ -250,16 +285,27 @@ export function App() {
           <header className="dashboard-header">
             <div className="dashboard-header__meta">
               <h1>MakeABet App</h1>
-              <p>Real-time price feeds powered by Pyth Network</p>
+              <p>Decentralized prediction markets powered by Pyth Network</p>
             </div>
             <div className="dashboard-header__actions">
               <LanguageSwitcher />
-              <ChainSwitcher />
-              <ConnectButton chainStatus="icon" showBalance={false} />
+              <ConnectButton showBalance={false} />
             </div>
           </header>
 
-          <PythPriceFeeds />
+          {/* Price Feeds Section */}
+          <PythPriceFeeds 
+            onCreateMarket={(symbol, currentPrice, feedId) => {
+              setCreateMarketData({ symbol, currentPrice, feedId });
+            }}
+          />
+          
+          {/* Markets Section */}
+          <MarketList 
+            userBalance={Number(formattedStableBalance.replace(/[^0-9.-]+/g,"")) || 0}
+            createMarketData={createMarketData}
+            onCreateMarketComplete={() => setCreateMarketData(null)}
+          />
         </div>
       </Tabs.Panel>
     </Tabs>
