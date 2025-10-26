@@ -75,9 +75,32 @@ pnpm --filter @makeabet/contracts run scripts/deploy.ts
 
 ### Railway Deployment
 
-Deploy the backend services (API + Worker) to Railway with one click:
+**方式 1: 一鍵部署（推薦）**
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/makeabet?referralCode=makeabet)
+1. Fork 這個倉庫到你的 GitHub
+2. 點擊下面的按鈕：
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
+
+3. 選擇 "Deploy from GitHub repo"
+4. 選擇你 fork 的倉庫
+5. Railway 會自動檢測並部署
+
+**方式 2: 使用 Railway CLI**
+
+```bash
+npm i -g @railway/cli
+railway login
+cd templates/monorepo
+railway init
+railway up
+```
+
+**方式 3: 直接從 GitHub 部署**
+
+訪問 https://railway.app/new 並選擇你的倉庫
+
+📖 **詳細部署指南**: [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md)
 
 #### What Gets Deployed
 
