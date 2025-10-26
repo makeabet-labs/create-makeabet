@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { Tabs } from '@mantine/core';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -9,9 +9,12 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { BettingExperience } from './components/BettingExperience';
 import { ChainSwitcher } from './components/ChainSwitcher';
 import { WalletSummary } from './components/WalletSummary';
+// Lazy load heavy components
+const BettingExperience = lazy(() => import('./components/BettingExperience').then((module) => ({
+    default: module.BettingExperience,
+})));
 import { useChain } from './providers/ChainProvider';
 import { useTranslation } from './i18n';
 const TAB_STORAGE_KEY = 'makeabet:app-tab';
@@ -186,7 +189,7 @@ export function App() {
                                                 ? 'Solana (Solana Wallet Adapter)'
                                                 : 'EVM (RainbowKit + WalletConnect)' }), _jsx("dt", { children: chainType === 'solana' ? 'PYUSD Mint Address' : 'PYUSD Contract Address' }), _jsx("dd", { children: displayPyusd || '未設定' }), _jsx("dt", { children: chainType === 'solana' ? 'Solana RPC' : 'EVM RPC' }), _jsx("dd", { children: displayRpc || '設定於 .env' }), chainType === 'evm' && (_jsxs(_Fragment, { children: [_jsx("dt", { children: "WalletConnect Project ID" }), _jsx("dd", { children: walletConnectLabel() })] })), addressExplorerLink && (_jsxs(_Fragment, { children: [_jsx("dt", { children: "Explorer" }), _jsx("dd", { children: _jsx("a", { href: addressExplorerLink, target: "_blank", rel: "noreferrer", className: "link", children: "\u67E5\u770B\u5730\u5740" }) })] }))] })] }), _jsxs("section", { className: "card", children: [_jsx("h2", { children: "\u8CC7\u7522\u6982\u89BD" }), _jsxs("dl", { children: [_jsx("dt", { children: "Native Asset" }), _jsxs("dd", { className: "asset-row", children: [_jsx("span", { className: "asset-symbol", children: nativeSymbol }), _jsx("span", { className: "asset-value", children: formattedNativeBalance })] }), _jsx("dt", { children: "Stablecoin" }), _jsxs("dd", { className: "asset-row", children: [_jsx("span", { className: "asset-symbol", children: stableSymbol }), _jsx("span", { className: "asset-value", children: formattedStableBalance })] })] }), isLocalChain && chainType === 'evm' && (_jsxs("div", { className: "faucet", children: [_jsx("button", { type: "button", className: "button", disabled: faucetMutation.isPending || !isConnected || !address, onClick: () => faucetMutation.mutate(), children: faucetMutation.isPending ? '發送中...' : '領取本地測試資產' }), faucetMutation.isSuccess && (_jsxs("p", { className: "status-success", children: ["\u5DF2\u767C\u9001 1 ETH / 100 PYUSD", faucetMutation.data?.length ? ` (tx: ${faucetMutation.data[0]})` : ''] })), faucetMutation.isError && (_jsx("p", { className: "status-error", children: faucetMutation.error.message ?? '請稍後重試' }))] }))] }), _jsxs("section", { className: "card", children: [_jsx("h2", { children: "\u4E0B\u4E00\u6B65" }), _jsxs("ol", { children: [_jsx("li", { children: "\u586B\u5165 PayPal Sandbox OAuth\u3001PYUSD\u3001Pyth\u3001RPC \u8A2D\u5B9A\u65BC `.env`\u3002" }), _jsx("li", { children: chainType === 'solana'
                                                 ? '整合 Solana Program / Anchor，串接 PYUSD Mint 與 Pyth Price Feeds。'
-                                                : '使用 Hardhat 部署合約並設定 Pyth Price Feed。' }), _jsx("li", { children: "\u90E8\u7F72 API / Worker \u81F3 Railway\uFF0C\u524D\u7AEF\u81F3 Vercel \u6216 Railway Static\u3002" })] })] })] }) }), _jsx(Tabs.Panel, { value: "scaffold", className: "app-tabs__panel", children: _jsx(BettingExperience, { chainName: chain.name, chainSwitcher: _jsx(ChainSwitcher, {}), connectWallet: _jsx(ConnectWallet, { chainType: chainType }), displayedWallet: displayedWallet, formattedWallet: formattedWallet }) })] }));
+                                                : '使用 Hardhat 部署合約並設定 Pyth Price Feed。' }), _jsx("li", { children: "\u90E8\u7F72 API / Worker \u81F3 Railway\uFF0C\u524D\u7AEF\u81F3 Vercel \u6216 Railway Static\u3002" })] })] })] }) }), _jsx(Tabs.Panel, { value: "scaffold", className: "app-tabs__panel", children: _jsx(Suspense, { fallback: _jsx("div", { className: "loading-fallback", children: "\u8F09\u5165\u4E2D..." }), children: _jsx(BettingExperience, { chainName: chain.name, chainSwitcher: _jsx(ChainSwitcher, {}), connectWallet: _jsx(ConnectWallet, { chainType: chainType }), displayedWallet: displayedWallet, formattedWallet: formattedWallet }) }) })] }));
     function walletConnectLabel() {
         return (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ||
             '請於 apps/web/.env 設定 VITE_WALLETCONNECT_PROJECT_ID');

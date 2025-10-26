@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:analyze": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest"

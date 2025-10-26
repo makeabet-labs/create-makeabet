@@ -3,8 +3,14 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": ".",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
-  "include": ["hardhat.config.ts", "scripts", "test", "contracts"]
+  "include": ["hardhat.config.ts", "scripts", "test", "contracts"],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
 }

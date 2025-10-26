@@ -1,9 +1,7 @@
 import { HardhatUserConfig } from 'hardhat/config';
-import '@nomicfoundation/hardhat-toolbox';
-import '@nomicfoundation/hardhat-verify';
-import * as dotenv from 'dotenv';
+import { config as dotenvConfig } from 'dotenv';
 
-dotenv.config();
+dotenvConfig();
 
 const PRIVATE_KEY = process.env.DEPLOYER_KEY ?? '';
 
@@ -18,24 +16,29 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      type: 'edr-simulated',
       chainId: 31337
     },
     localhost: {
+      type: 'http',
       url: 'http://127.0.0.1:8545',
       chainId: 31337
     },
     sepolia: {
-      url: process.env.ALCHEMY_SEPOLIA_URL ?? '',
+      type: 'http',
+      url: process.env.ALCHEMY_SEPOLIA_URL || 'https://ethereum-sepolia.publicnode.com',
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 11155111
     },
     'arbitrum-sepolia': {
-      url: process.env.ALCHEMY_ARBITRUM_SEPOLIA_URL ?? '',
+      type: 'http',
+      url: process.env.ALCHEMY_ARBITRUM_SEPOLIA_URL || 'https://arbitrum-sepolia.publicnode.com',
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 421614
     },
     'base-sepolia': {
-      url: process.env.ALCHEMY_BASE_SEPOLIA_URL ?? '',
+      type: 'http',
+      url: process.env.ALCHEMY_BASE_SEPOLIA_URL || 'https://base-sepolia.publicnode.com',
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 84532
     }

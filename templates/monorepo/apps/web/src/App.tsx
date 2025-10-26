@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import { Tabs } from '@mantine/core';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
@@ -8,9 +8,15 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { BettingExperience } from './components/BettingExperience';
 import { ChainSwitcher } from './components/ChainSwitcher';
 import { WalletSummary } from './components/WalletSummary';
+
+// Lazy load heavy components
+const BettingExperience = lazy(() =>
+  import('./components/BettingExperience').then((module) => ({
+    default: module.BettingExperience,
+  }))
+);
 
 import { useChain } from './providers/ChainProvider';
 import type { ChainType } from './providers/WalletProvider';
@@ -348,13 +354,15 @@ export function App() {
       </Tabs.Panel>
 
       <Tabs.Panel value="scaffold" className="app-tabs__panel">
-        <BettingExperience
-          chainName={chain.name}
-          chainSwitcher={<ChainSwitcher />}
-          connectWallet={<ConnectWallet chainType={chainType} />}
-          displayedWallet={displayedWallet}
-          formattedWallet={formattedWallet}
-        />
+        <Suspense fallback={<div className="loading-fallback">載入中...</div>}>
+          <BettingExperience
+            chainName={chain.name}
+            chainSwitcher={<ChainSwitcher />}
+            connectWallet={<ConnectWallet chainType={chainType} />}
+            displayedWallet={displayedWallet}
+            formattedWallet={formattedWallet}
+          />
+        </Suspense>
       </Tabs.Panel>
     </Tabs>
   );

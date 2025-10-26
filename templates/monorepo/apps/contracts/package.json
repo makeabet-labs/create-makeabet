@@ -2,6 +2,10 @@
   "name": "@makeabet/contracts",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "hardhat compile",
     "compile": "hardhat compile",
@@ -16,25 +20,29 @@
     "settleRoom": "hardhat run scripts/settleRoom.ts --network sepolia"
   },
   "dependencies": {
-    "@nomicfoundation/hardhat-ethers": "^3.0.8",
+    "@nomicfoundation/hardhat-ethers": "^4.0.2",
     "@nomicfoundation/hardhat-verify": "^2.0.11",
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@pythnetwork/pyth-evm-js": "^1.14.0",
     "@pythnetwork/pyth-sdk-solidity": "^4.2.0",
     "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
     "@openzeppelin/contracts": "^5.0.2",
     "@types/node": "^20.11.32",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
-    "hardhat": "^3.0.0"
+    "hardhat": "^3.0.9",
+    "hardhat-gas-reporter": "^2.3.0",
+    "solidity-coverage": "^0.8.16",
+    "typechain": "^8.3.2"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
-    "@typechain/hardhat": "^9.1.0",
     "chai": "^4.4.1",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "solhint": "^6.0.1",
-    "ts-node": "^10.9.2",
-    "typechain": "^8.3.2"
+    "ts-node": "^10.9.2"
   }
 }

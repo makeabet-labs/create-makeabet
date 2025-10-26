@@ -1,5 +1,7 @@
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
 import { PythConnection } from '@pythnetwork/pyth-evm-js';
+
+const ethers = hre.ethers;
 
 async function main() {
   const contractAddress = process.env.MARKET_CONTRACT_ADDRESS;

@@ -4,8 +4,10 @@
  */
 
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
 import { Contract, Signer } from 'ethers';
+
+const ethers = hre.ethers;
 
 describe('Local Deployment Integration', function () {
   let mockPYUSD: Contract;

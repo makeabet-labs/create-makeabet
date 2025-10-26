@@ -1,4 +1,6 @@
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
+
+const ethers = hre.ethers;
 
 async function main() {
   const contractAddress = process.env.MARKET_CONTRACT_ADDRESS;

@@ -2,11 +2,19 @@
 
 這個腳手架由 `create-makeabet` CLI 產生，預設整合硬體：
 
-- **Hardhat**：部署與測試 PYUSD 預測市場合約，內建 Pyth pull oracle 與商家房間管理腳本。
+- **Hardhat 3**：部署與測試 PYUSD 預測市場合約，內建 Pyth pull oracle 與商家房間管理腳本。
 - **Fastify API + Worker**：`apps/api` 提供 PayPal/PYUSD/Pyth 相關的應用層 API，`apps/worker` 定時更新 Pyth 價格與結算。
-- **Next.js / React 前端**：`apps/web` 展示下注流程、PayPal OAuth、商家後台入口。
+- **React 19 前端**：`apps/web` 展示下注流程、PayPal OAuth、商家後台入口。
 - **Redis + Postgres**：Docker Compose 預設服務，搭配 `Makefile` 指令啟動。
 - **Railway 部署範本**：`deploy/railway.json` 與 README 範例，支援一鍵建立雲端環境。
+
+## 環境需求
+
+- **Node.js**: >= 22.0.0 (建議使用 22.10.0 或更高版本)
+- **pnpm**: >= 9.0.0
+- **Docker**: 用於本地 Postgres 和 Redis
+
+> 💡 **提示**: 使用 `nvm use` 或 `fnm use` 自動切換到專案指定的 Node.js 版本（參考 `.nvmrc` 文件）
 
 ## 快速開始
 
@@ -154,5 +162,53 @@ For more information, see:
 - [Railway Testing Checklist](docs/RAILWAY_TESTING_CHECKLIST.md) - Deployment verification checklist
 - [Railway Documentation](https://docs.railway.app/) - Official Railway docs
 - Configuration file: `deploy/railway.json`
+
+## Performance Optimization
+
+The scaffold is optimized for production performance with:
+
+- **Code Splitting**: Automatic vendor chunking and lazy loading
+- **Bundle Optimization**: Configured Vite build with tree-shaking
+- **Modern Build Target**: ES2020 for smaller bundles
+- **Optimized Dependencies**: Pre-bundled common libraries
+
+### Analyze Bundle Size
+
+Check your production bundle size:
+
+```bash
+pnpm analyze:bundle
+```
+
+This will build the app and provide detailed analysis of:
+- JavaScript bundle sizes
+- CSS bundle sizes
+- Recommendations for optimization
+- Performance warnings
+
+### Performance Testing
+
+For comprehensive performance testing:
+
+```bash
+# Run Lighthouse audit
+pnpm --filter @makeabet/web build
+pnpm --filter @makeabet/web preview
+# Then open Chrome DevTools → Lighthouse
+
+# Test on slow network
+# Chrome DevTools → Network → Throttling → Slow 3G
+```
+
+### Performance Documentation
+
+- [PERFORMANCE.md](PERFORMANCE.md) - Optimization guide and best practices
+- [PERFORMANCE_TESTING.md](PERFORMANCE_TESTING.md) - Detailed testing procedures
+
+### Target Metrics
+
+- **Initial Load**: < 3 seconds on 3G
+- **Bundle Size**: < 500KB (gzipped)
+- **Lighthouse Score**: > 90 on all metrics
 
 更多資訊請參考 `docs/` 內的 PRD 與技術設計文件模板。
